@@ -79,6 +79,40 @@ module.exports = {
     baseUrl: `${updateHost}/1/releases`,
     winBaseUrl: `${winUpdateHost}/multi-channel/releases/CHANNEL/`
   },
+  extensions: [
+    {
+      name: '1Password',
+      ID: 'aomjjhallfgjeglblehebfpbcfeobpgk',
+      version: '1',
+      url: 'http://localhost:9090/aomjjhallfgjeglblehebfpbcfeobpgk.crx',
+      enabled: true,
+      msBetweenRechecks: 1000 * 60 * 60 * 24 // 1 day
+    },
+    {
+      name: 'Dashlane',
+      ID: 'fdjamakpfbbddfjaooikfcpapjohcfmg',
+      version: '1',
+      url: 'http://localhost:9090/fdjamakpfbbddfjaooikfcpapjohcfmg.crx',
+      enabled: true,
+      msBetweenRechecks: 1000 * 60 * 60 * 24 // 1 day
+    },
+    {
+      name: 'LastPass',
+      ID: 'hdokiejnpimakedhajhdlcegeplioahd',
+      version: '1',
+      url: 'http://localhost:9090/hdokiejnpimakedhajhdlcegeplioahd.crx',
+      enabled: true,
+      msBetweenRechecks: 1000 * 60 * 60 * 24 // 1 day
+    },
+    {
+      name: 'PDFJS',
+      ID: 'oemmndcbldboiebfnladdacbdfmadadm',
+      version: '1',
+      url: 'http://localhost:9090/oemmndcbldboiebfnladdacbdfmadadm.crx',
+      enabled: true,
+      msBetweenRechecks: 1000 * 60 * 60 * 24 // 1 day
+    }
+  ],
   defaultSettings: {
     'general.language': null, // null means to use the OS lang
     'general.startup-mode': 'lastTime',

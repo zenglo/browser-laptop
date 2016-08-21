@@ -16,6 +16,7 @@ const UrlUtil = require('../lib/urlutil')
 const messages = require('../constants/messages.js')
 const contextMenus = require('../contextMenus')
 const {siteHacks} = require('../data/siteHacks')
+const extensions = global.require('electron').remote.extensions
 const ipc = global.require('electron').ipcRenderer
 const clipboard = global.require('electron').clipboard
 const FullScreenWarning = require('./fullScreenWarning')
@@ -92,6 +93,10 @@ class Frame extends ImmutableComponent {
         history: this.props.history.toJS()
       })
       this.webview.send(messages.SETTINGS_UPDATED, this.props.settings ? this.props.settings.toJS() : null)
+    } else if (location === 'about:extensions') {
+      this.webview.send(messages.EXTENSIONS_UPDATED, {
+        extensions: extensions.getExtensions(currentWindow.webContents)
+      })
     } else if (location === 'about:downloads') {
       this.webview.send(messages.DOWNLOADS_UPDATED, {
         downloads: this.props.downloads.toJS()

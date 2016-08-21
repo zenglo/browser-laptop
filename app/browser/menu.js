@@ -502,6 +502,13 @@ const createDebugSubmenu = (CommonMenu) => {
       click: function (item, focusedWindow) {
         CommonMenu.sendToFocusedWindow(focusedWindow, [messages.DEBUG_REACT_PROFILE])
       }
+    }, {
+      label: 'Install CRX',
+      accelerator: 'Alt+C',
+      click: function () {
+        console.log('loading extension')
+        require('electron').extensions.installCrx('/Users/bbondy/projects/brave/1password.crx')
+      }
     }
   ]
 }

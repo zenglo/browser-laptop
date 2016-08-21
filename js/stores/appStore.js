@@ -142,6 +142,7 @@ const createWindow = (browserOpts, defaults, frameOpts, windowState) => {
   }
 
   let mainWindow = new BrowserWindow(Object.assign(windowProps, browserOpts))
+  mainWindow.toggleDevTools()
 
   if (windowState.ui && windowState.ui.isMaximized) {
     mainWindow.maximize()

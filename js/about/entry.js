@@ -41,6 +41,10 @@ switch (getBaseUrl(getSourceAboutUrl(window.location.href))) {
     break
   case 'about:autofill':
     element = require('./autofill')
+    break
+  case 'about:extensions':
+    element = require('./extensions')
+    break
 }
 
 if (element) {
