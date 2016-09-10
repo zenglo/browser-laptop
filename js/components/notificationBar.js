@@ -71,12 +71,34 @@ class NotificationItem extends ImmutableComponent {
 }
 
 class NotificationBar extends ImmutableComponent {
+  sortNotifications (notifications) {
+    let indicesStyles = notifications.map((el, i) => {
+      return { index: i, value: el.get('options').get('style') }
+    })
+
+    // Sort mapped array of notification styles
+    indicesStyles.sort(function(a, b) {
+      if (!a) {
+        return -9001
+      }
+      if (!b) {
+        return 9001
+      }
+      return +(a.value > b.value) || +(a.value === b.value) - 1
+    });
+
+    // Map back
+    return indicesStyles.map((el) => {
+      return notifications.get(el.index)
+    });
+  }
+
   render () {
     const activeOrigin = getOrigin(this.props.activeFrame.get('location'))
     if (!activeOrigin) {
       return null
     }
-    const activeNotifications = this.props.notifications.filter((item) =>
+    let activeNotifications = this.props.notifications.filter((item) =>
       item.get('frameOrigin') ? activeOrigin === item.get('frameOrigin') : true)
 
     if (!activeNotifications.size) {
@@ -85,7 +107,7 @@ class NotificationBar extends ImmutableComponent {
 
     return <div className='notificationBar'>
     {
-      activeNotifications.takeLast(3).map((notificationDetail) =>
+      this.sortNotifications(activeNotifications).takeLast(3).map((notificationDetail) =>
         <NotificationItem detail={notificationDetail} />
       )
     }
