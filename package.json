@@ -78,6 +78,8 @@
     "abp-filter-parser-cpp": "1.1.x",
     "acorn": "3.2.0",
     "async": "^2.0.1",
+    "country-data": "0.0.29",
+    "country-reverse-geocoding": "0.2.1",
     "electron-localshortcut": "^0.6.0",
     "electron-prebuilt": "brave/electron-prebuilt",
     "electron-squirrel-startup": "^1.0.0",

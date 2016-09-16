@@ -30,6 +30,8 @@ const ipc = electron.ipcMain
 const session = electron.session
 
 const acorn = require('acorn')
+const cd = require('country-data')
+const crg = require('country-reverse-geocoding').country_reverse_geocoding().get_country
 const ledgerBalance = require('ledger-balance')
 const ledgerClient = require('ledger-client')
 const ledgerGeoIP = require('ledger-geoip')
@@ -110,6 +112,7 @@ const doAction = (action) => {
       if (action.key === settings.PAYMENTS_CONTRIBUTION_AMOUNT) return setPaymentInfo(action.value)
       break
     case appConstants.APP_GEOLOCATION_CHANGED:
+      geoLocate(action.lat, action.lon)
       break
     default:
   }
@@ -1167,6 +1170,33 @@ var cacheReturnValue = () => {
   } catch (ex) {
     console.log('qr.imageSync error: ' + ex.toString())
   }
+}
+
+var geoLocate = (lat, lng) => {
+  var country
+  var entry = crg(lat, lng)
+  var now = underscore.now()
+
+  if (!entry) return
+
+  country = cd.countries[entry.code]
+  if (!country) return
+
+  ledgerInfo._internal.geoipExpiry = now + (1 * msecs.week)
+  ledgerInfo.countryCode = country.alpha2
+
+  ledgerInfo.exchangeInfo = ledgerInfo._internal.exchanges[ledgerInfo.countryCode]
+
+  if (now <= ledgerInfo._internal.exchangeExpiry) return updateLedgerInfo()
+
+  ledgerInfo._internal.exchangeExpiry = now + msecs.day
+  roundtrip({ path: '/v1/exchange/providers' }, client.options, (err, response, body) => {
+    if (err) console.log('ledger exchange error: ' + JSON.stringify(err, null, 2))
+
+    ledgerInfo._internal.exchanges = body || {}
+    ledgerInfo.exchangeInfo = ledgerInfo._internal.exchanges[ledgerInfo.countryCode]
+    updateLedgerInfo()
+  })
 }
 
 /*
