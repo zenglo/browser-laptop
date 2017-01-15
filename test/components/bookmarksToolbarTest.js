@@ -26,7 +26,7 @@ const findBookmarkFolder = (folderName, val) => {
   return false
 }
 
-describe('bookmarksToolbar', function () {
+describe.only('bookmarksToolbar', function () {
   describe('configuration settings', function () {
     Brave.beforeAll(this)
 
@@ -120,37 +120,79 @@ describe('bookmarksToolbar', function () {
 
     it('hides context menu when mousing over regular bookmark', function * () {
       this.page1Url = Brave.server.url('page1.html')
+      console.log('-----1')
       yield this.app.client
         .changeSetting(settings.SHOW_BOOKMARKS_TOOLBAR, true)
+      console.log('-----2')
+      yield this.app.client
         .waitForVisible(bookmarksToolbar)
+      console.log('-----3')
+      yield this.app.client
         .addSite({
           customTitle: 'demo1',
           folderId: Math.random(),
           parentFolderId: 0,
           tags: [siteTags.BOOKMARK_FOLDER]
         }, siteTags.BOOKMARK_FOLDER)
+      console.log('-----4')
+      yield this.app.client
         .waitUntil(function () {
           return this.getAppState().then((val) => {
             return findBookmarkFolder('demo1', val)
           })
         })
+      console.log('-----5')
+      yield this.app.client
         .waitForUrl(Brave.newTabUrl)
+      console.log('-----6')
+      yield this.app.client
         .loadUrl(this.page1Url)
+      console.log('-----7')
+      yield this.app.client
         .windowParentByUrl(this.page1Url)
+      console.log('-----8')
+      yield this.app.client
         .waitForSiteEntry(this.page1Url)
+      console.log('-----9')
+      yield this.app.client
         .waitForVisible(navigator)
+      console.log('-----10')
+      yield this.app.client
         .moveToObject(navigator)
+      console.log('-----11')
+      yield this.app.client
         .waitForVisible(navigatorNotBookmarked)
+      console.log('-----12')
+      yield this.app.client
         .click(navigatorNotBookmarked)
+      console.log('-----13')
+      yield this.app.client
         .waitForVisible(doneButton)
+      console.log('-----14')
+      yield this.app.client
         .waitForEnabled(doneButton)
+      console.log('-----15')
+      yield this.app.client
         .setValue('#bookmarkName input', 'test1')
+      console.log('-----16')
+      yield this.app.client
         .click(doneButton)
+      console.log('-----17')
+      yield this.app.client
         .waitForVisible('.bookmarkToolbarButton[title^=test1]')
+      console.log('-----18')
+      yield this.app.client
         .click('.bookmarkToolbarButton[title=demo1]')
+      console.log('-----19')
+      yield this.app.client
         .waitForVisible('.contextMenuItemText[data-l10n-id=emptyFolderItem]')
+      console.log('-----20')
+      yield this.app.client
         .moveToObject('.bookmarkToolbarButton[title^=test1]')
+      console.log('-----21')
+      yield this.app.client
         .waitForElementCount('.contextMenuItemText', 0)
+      console.log('-----22')
     })
   })
 
@@ -163,26 +205,54 @@ describe('bookmarksToolbar', function () {
     it('display bookmark favicon for url that has it', function * () {
       const pageWithFavicon = Brave.server.url('favicon.html')
 
+      console.log('-----a1')
       yield this.app.client
         .changeSetting(settings.SHOW_BOOKMARKS_TOOLBAR, true)
+      console.log('-----a2')
+      yield this.app.client
         .changeSetting(settings.SHOW_BOOKMARKS_TOOLBAR_FAVICON, true)
+      console.log('-----a3')
+      yield this.app.client
         .waitForVisible(bookmarksToolbar)
+      console.log('-----a4')
+      yield this.app.client
         .waitForUrl(Brave.newTabUrl)
+      console.log('-----a5')
+      yield this.app.client
         .loadUrl(pageWithFavicon)
+      console.log('-----a6')
+      yield this.app.client
         .windowParentByUrl(pageWithFavicon)
+      console.log('-----a7')
+      yield this.app.client
         .waitForSiteEntry(pageWithFavicon, false)
+      console.log('-----a8')
+      yield this.app.client
         .waitForVisible(navigator)
+      console.log('-----a9')
+      yield this.app.client
         .moveToObject(navigator)
+      console.log('-----a10')
+      yield this.app.client
         .waitForVisible(navigatorNotBookmarked)
+      console.log('-----a11')
+      yield this.app.client
         .click(navigatorNotBookmarked)
+      console.log('-----a12')
+      yield this.app.client
         .waitForVisible(doneButton)
+      console.log('-----a13')
+      yield this.app.client
         .waitForEnabled(doneButton)
+      console.log('-----a14')
+      yield this.app.client
         .click(doneButton)
-
+      console.log('-----a15')
       yield this.app.client.waitUntil(() =>
         this.app.client.getCssProperty('.bookmarkFavicon', 'background-image').then((backgroundImage) =>
           backgroundImage.value === `url("${Brave.server.url('img/test.ico')}")`
       ))
+      console.log('-----a16')
     })
 
     it('fallback to default bookmark icon when url has no favicon', function * () {
