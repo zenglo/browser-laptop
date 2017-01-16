@@ -74,48 +74,90 @@ describe.only('bookmarksToolbar', function () {
       const folderId1 = Math.random()
       const folderId2 = Math.random()
 
+      console.log('-----b1')
       yield this.app.client
         .changeSetting(settings.SHOW_BOOKMARKS_TOOLBAR, true)
+      console.log('-----b2')
+      yield this.app.client
         .waitForVisible(bookmarksToolbar)
+      console.log('-----b3')
+      yield this.app.client
         .addSite({
           customTitle: 'demo1',
           folderId: folderId1,
           parentFolderId: 0,
           tags: [siteTags.BOOKMARK_FOLDER]
         }, siteTags.BOOKMARK_FOLDER)
+      console.log('-----b4')
+      yield this.app.client
         .waitUntil(function () {
           return this.getAppState().then((val) => {
             return findBookmarkFolder('demo1', val)
           })
         })
+      console.log('-----b5')
+      yield this.app.client
         .addSite({
           customTitle: 'demo2',
           folderId: folderId2,
           parentFolderId: 0,
           tags: [siteTags.BOOKMARK_FOLDER]
         }, siteTags.BOOKMARK_FOLDER)
+      console.log('-----b6')
+      yield this.app.client
         .waitUntil(function () {
           return this.getAppState().then((val) => {
             return findBookmarkFolder('demo2', val)
           })
         })
+      console.log('-----b7')
+      yield this.app.client
         .waitForUrl(Brave.newTabUrl)
+      console.log('-----b8')
+      yield this.app.client
         .loadUrl(this.page1Url)
+      console.log('-----b9')
+      yield this.app.client
         .windowParentByUrl(this.page1Url)
+      console.log('-----b10')
+      yield this.app.client
         .waitForSiteEntry(this.page1Url)
+      console.log('-----b11')
+      yield this.app.client
         .waitForVisible(navigator)
+      console.log('-----b12')
+      yield this.app.client
         .moveToObject(navigator)
+      console.log('-----b13')
+      yield this.app.client
         .waitForVisible(navigatorNotBookmarked)
+      console.log('-----b14')
+      yield this.app.client
         .click(navigatorNotBookmarked)
+      console.log('-----b15')
+      yield this.app.client
         .waitForVisible(doneButton)
+      console.log('-----b16')
+      yield this.app.client
         .waitForEnabled(doneButton)
+      console.log('-----b17')
+      yield this.app.client
         .selectByValue('#bookmarkParentFolder select', folderId2)
+      console.log('-----b18')
+      yield this.app.client
         .click(doneButton)
+      console.log('-----b19')
+      yield this.app.client
         .click('.bookmarkToolbarButton[title=demo1]')
+      console.log('-----b20')
+      yield this.app.client
         .moveToObject('.bookmarkToolbarButton[title=demo2]')
+      console.log('-----b21')
+      yield this.app.client
         .getText('.contextMenuItemText').then((val) => {
           assert(val === 'Page 1')
         })
+      console.log('-----b22')
     })
 
     it('hides context menu when mousing over regular bookmark', function * () {
