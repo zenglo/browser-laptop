@@ -51,14 +51,16 @@ if (!!process.env.TELEMETRY_URL &&
 function setCheckpoint (checkpoint, ts) {
   ts = ts || (new Date()).getTime()
   var delta = 0
+  var fromStart = 0
 
   telemetry = telemetry.set(checkpoint, ts)
 
   if (eventList.size > 0) {
     delta = ts - eventList.get(eventList.size - 1)[1]
+    fromStart = ts - eventList.get(0)[1]
   }
-  eventList = eventList.push([checkpoint, ts, delta / 1000])
-  if (DEBUG) console.log(events())
+  eventList = eventList.push([checkpoint, ts, delta / 1000, fromStart / 1000])
+  if (DEBUG) prettyPrintDebug()
 }
 
 /**
@@ -134,6 +136,35 @@ var sendTelemetry = (measure, value, extra) => {
     })
   }
   return payload
+}
+
+var rpad = (text, length) => {
+  if (text.length > length) return text
+  return text + xtimes(length - text.length, ' ')
+}
+
+var lpad = (text, length) => {
+  if (text.length > length) return text
+  return xtimes(length - text.length, ' ') + text
+}
+
+var xtimes = (n, char) => {
+  var buf = ''
+  for (let i = 0; i < n; i++) buf = buf + char
+  return buf
+}
+
+// print human readable view of telemetry
+var prettyPrintDebug = () => {
+  var totalTime = eventList.get(eventList.size - 1)[3]
+  var maxLabelLength = _.max(_.map(eventList.toJS(), (event) => { return event[0].length }))
+  console.log('Startup time = ' + totalTime + 's')
+  eventList.forEach((event) => {
+    let percent = lpad((event[2] / totalTime * 100).toFixed(2) + '%', 10)
+    let line = lpad(xtimes(parseInt(event[2] / totalTime * 100), 'X'), 50)
+    let label = rpad(event[0], maxLabelLength)
+    console.log(`${line} ${label} ${percent}`)
+  })
 }
 
 setCheckpoint('__baseline__')

@@ -46,41 +46,49 @@ if (process.platform === 'win32') {
   require('./windowsInit')
 }
 
-const electron = require('electron')
+// require the file at a given path and set a telemetry checkpoint
+const requireAndInstrument = (path) => {
+  var checkpoint = ['require'].concat(path.split('/').filter((v) => { return v !== '.' && v !== '..' })).join('-')
+  var object = require(path)
+  telemetry.setCheckpointAndReport(checkpoint)
+  return object
+}
+
+const electron = requireAndInstrument('electron')
 const app = electron.app
 const BrowserWindow = electron.BrowserWindow
 const dialog = electron.dialog
 const ipcMain = electron.ipcMain
 const Immutable = require('immutable')
-const Menu = require('./browser/menu')
-const Updater = require('./updater')
-const Importer = require('./importer')
-const messages = require('../js/constants/messages')
-const appConfig = require('../js/constants/appConfig')
-const appActions = require('../js/actions/appActions')
-const SessionStore = require('./sessionStore')
-const AppStore = require('../js/stores/appStore')
-const PackageLoader = require('./package-loader')
-const Autofill = require('./autofill')
-const Extensions = require('./extensions')
-const TrackingProtection = require('./trackingProtection')
-const AdBlock = require('./adBlock')
-const AdInsertion = require('./browser/ads/adInsertion')
-const HttpsEverywhere = require('./httpsEverywhere')
-const SiteHacks = require('./siteHacks')
-const CmdLine = require('./cmdLine')
-const UpdateStatus = require('../js/constants/updateStatus')
-const urlParse = require('./common/urlParse')
-const CryptoUtil = require('../js/lib/cryptoUtil')
-const keytar = require('keytar')
-const siteSettings = require('../js/state/siteSettings')
-const spellCheck = require('./spellCheck')
-const locale = require('./locale')
-const ledger = require('./ledger')
-const contentSettings = require('../js/state/contentSettings')
-const privacy = require('../js/state/privacy')
-const async = require('async')
-const settings = require('../js/constants/settings')
+const Menu = requireAndInstrument('./browser/menu')
+const Updater = requireAndInstrument('./updater')
+const Importer = requireAndInstrument('./importer')
+const messages = requireAndInstrument('../js/constants/messages')
+const appConfig = requireAndInstrument('../js/constants/appConfig')
+const appActions = requireAndInstrument('../js/actions/appActions')
+const SessionStore = requireAndInstrument('./sessionStore')
+const AppStore = requireAndInstrument('../js/stores/appStore')
+const PackageLoader = requireAndInstrument('./package-loader')
+const Autofill = requireAndInstrument('./autofill')
+const Extensions = requireAndInstrument('./extensions')
+const TrackingProtection = requireAndInstrument('./trackingProtection')
+const AdBlock = requireAndInstrument('./adBlock')
+const AdInsertion = requireAndInstrument('./browser/ads/adInsertion')
+const HttpsEverywhere = requireAndInstrument('./httpsEverywhere')
+const SiteHacks = requireAndInstrument('./siteHacks')
+const CmdLine = requireAndInstrument('./cmdLine')
+const UpdateStatus = requireAndInstrument('../js/constants/updateStatus')
+const urlParse = requireAndInstrument('./common/urlParse')
+const CryptoUtil = requireAndInstrument('../js/lib/cryptoUtil')
+const keytar = requireAndInstrument('keytar')
+const siteSettings = requireAndInstrument('../js/state/siteSettings')
+const spellCheck = requireAndInstrument('./spellCheck')
+const locale = requireAndInstrument('./locale')
+const ledger = requireAndInstrument('./ledger')
+const contentSettings = requireAndInstrument('../js/state/contentSettings')
+const privacy = requireAndInstrument('../js/state/privacy')
+const async = requireAndInstrument('async')
+const settings = requireAndInstrument('../js/constants/settings')
 
 // temporary fix for #4517, #4518 and #4472
 app.commandLine.appendSwitch('enable-use-zoom-for-dsf', 'false')
@@ -256,6 +264,7 @@ loadAppStatePromise.then((initialState) => {
   } else {
     console.log('Crash reporting disabled')
   }
+  telemetry.setCheckpointAndReport('crash-reporting-init')
   if (initialState.settings[SMOOTH_SCROLL_ENABLED] === false) {
     app.commandLine.appendSwitch('disable-smooth-scrolling')
   }
@@ -284,6 +293,7 @@ const notifyCertError = (webContents, url, error, cert) => {
 
 app.on('ready', () => {
   let sessionStateSaveInterval = null
+  telemetry.setCheckpointAndReport('ready-fired')
   app.on('certificate-error', (e, webContents, url, error, cert, resourceType, overridable, strictEnforcement, expiredPreviousDecision, cb) => {
     let host = urlParse(url).host
     if (host && acceptCertDomains[host] === true) {
@@ -427,6 +437,7 @@ app.on('ready', () => {
     TrackingProtection.init()
     AdBlock.init()
     AdInsertion.init()
+    telemetry.setCheckpointAndReport('inits-complete')
 
     if (!loadedPerWindowState || loadedPerWindowState.length === 0) {
       if (!CmdLine.newWindowURL()) {
@@ -438,6 +449,7 @@ app.on('ready', () => {
       })
     }
     process.emit(messages.APP_INITIALIZED)
+    telemetry.setCheckpointAndReport('app-initialized')
 
     if (process.env.BRAVE_IS_DEFAULT_BROWSER !== undefined) {
       if (process.env.BRAVE_IS_DEFAULT_BROWSER === 'true') {
@@ -538,6 +550,7 @@ app.on('ready', () => {
     sessionStateSaveInterval = setInterval(initiateSessionStateSave, 1000 * 60 * 5)
 
     ledger.init()
+    telemetry.setCheckpointAndReport('ledger-init-complete')
 
     ipcMain.on(messages.LEDGER_CREATE_WALLET, () => {
       ledger.boot()
@@ -728,13 +741,15 @@ app.on('ready', () => {
     })
 
     // This loads package.json into an object
-    // TODO: Seems like this can be done with app.getVersion() insteand?
+    // TODO: Seems like this can be done with app.getVersion() instead?
     PackageLoader.load((err, pack) => {
       if (err) throw new Error('package.json could not be accessed')
+      telemetry.setCheckpointAndReport('package-loader')
 
       // Setup the auto updater, check the env variable first because it's
       // used to check the update channel before releases.
       Updater.init(process.platform, process.arch, process.env.BRAVE_UPDATE_VERSION || pack.version)
+      telemetry.setCheckpointAndReport('updater-init')
 
       // This is fired by a menu entry (for now - will be scheduled)
       process.on(messages.CHECK_FOR_UPDATE, () => Updater.checkForUpdate(true))
