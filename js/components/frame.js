@@ -407,6 +407,13 @@ class Frame extends ImmutableComponent {
         this.handleShortcut()
       }
 
+      if (this.props.tabData) {
+        if (!prevProps.tabData ||
+              prevProps.tabData.get('title') !== this.props.tabData.get('title')) {
+          windowActions.setFrameTitle(this.frame, this.props.tabData.get('title'))
+        }
+      }
+
       if (this.props.isActive && !prevProps.isActive && !this.props.urlBarFocused) {
         this.webview.focus()
       }
@@ -709,12 +716,6 @@ class Frame extends ImmutableComponent {
         })
       }
     })
-    this.webview.addEventListener('page-title-updated', ({title}) => {
-      if (this.frame.isEmpty()) {
-        return
-      }
-      windowActions.setFrameTitle(this.frame, title)
-    })
     this.webview.addEventListener('show-autofill-settings', (e) => {
       windowActions.newFrame({ location: 'about:autofill' }, true)
     })
@@ -921,13 +922,6 @@ class Frame extends ImmutableComponent {
       }
       // force temporary url display for tabnapping protection
       windowActions.setMouseInTitlebar(true)
-
-      // After navigating to the URL via back/forward buttons, set correct frame title
-      if (!e.isRendererInitiated) {
-        if (!this.frame.isEmpty() && this.props.tabData) {
-          windowActions.setFrameTitle(this.frame, this.props.tabData.get('title'))
-        }
-      }
     })
     this.webview.addEventListener('crashed', (e) => {
       if (this.frame.isEmpty()) {
