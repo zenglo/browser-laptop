@@ -316,7 +316,6 @@ class Frame extends ImmutableComponent {
         }
       } else {
         let partition = FrameStateUtil.getPartition(this.frame)
-        ipc.sendSync(messages.INITIALIZE_PARTITION, partition)
         this.webview.setAttribute('partition', partition)
       }
 

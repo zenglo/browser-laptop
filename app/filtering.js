@@ -5,10 +5,7 @@
 'use strict'
 
 const messages = require('../js/constants/messages')
-const electron = require('electron')
-const session = electron.session
-const BrowserWindow = electron.BrowserWindow
-const webContents = electron.webContents
+const {session, BrowserWindow, webContents, app, ipcMain, dialog} = require('electron')
 const appActions = require('../js/actions/appActions')
 const appConfig = require('../js/constants/appConfig')
 const hostContentSettings = require('./browser/contentSettings/hostContentSettings')
@@ -24,9 +21,6 @@ const userPrefs = require('../js/state/userPrefs')
 const config = require('../js/constants/config')
 const locale = require('./locale')
 const {isSessionPartition} = require('../js/state/frameStateUtil')
-const ipcMain = electron.ipcMain
-const dialog = electron.dialog
-const app = electron.app
 const uuid = require('node-uuid')
 const path = require('path')
 const getOrigin = require('../js/state/siteUtil').getOrigin
@@ -541,7 +535,7 @@ function initSession (ses, partition) {
   ses.userPrefs.setDefaultZoomLevel(getSetting(settings.DEFAULT_ZOOM_LEVEL) || config.zoom.defaultValue)
 }
 
-function initForPartition (partition) {
+function initForPartition (partition, ses) {
   let fns = [initSession,
     userPrefs.init,
     hostContentSettings.init,
@@ -552,11 +546,13 @@ function initForPartition (partition) {
     registerForHeadersReceived,
     registerForDownloadListener,
     registerForMagnetHandler]
-  let options = {}
-  if (isSessionPartition(partition)) {
-    options.parent_partition = ''
+  if (!ses) {
+    let options = {}
+    if (isSessionPartition(partition)) {
+      options.parent_partition = ''
+    }
+    ses = session.fromPartition(partition, options)
   }
-  let ses = session.fromPartition(partition, options)
   fns.forEach((fn) => { fn(ses, partition, module.exports.isPrivate(partition)) })
 }
 
@@ -607,14 +603,11 @@ module.exports.init = (state, action, store) => {
     ['default'].forEach((partition) => {
       initForPartition(partition)
     })
-    ipcMain.on(messages.INITIALIZE_PARTITION, (e, partition) => {
-      if (initializedPartitions[partition]) {
-        e.returnValue = true
-        return e.returnValue
+    app.on('browser-context-created', (e, ses) => {
+      const partition = ses.partition
+      if (!initializedPartitions[partition]) {
+        initForPartition(partition, ses)
       }
-      initForPartition(partition)
-      e.returnValue = true
-      return e.returnValue
     })
     ipcMain.on(messages.NOTIFICATION_RESPONSE, (e, message, buttonIndex, persist) => {
       if (permissionCallbacks[message]) {
