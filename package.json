@@ -1,6 +1,6 @@
 {
   "name": "brave",
-  "version": "0.13.5",
+  "version": "0.14.0",
   "description": "Brave laptop and desktop browser",
   "main": "./app/index.js",
   "config": {
@@ -33,7 +33,7 @@
     "start2": "node ./tools/start.js --user-data-dir=brave-development-2 --debug=5859 --enable-logging --v=0 --enable-extension-activity-logging --enable-sandbox-logging --enable-dcheck",
     "start-brk": "node ./tools/start.js --debug-brk=5858 -enable-logging --v=0 --enable-dcheck",
     "test": "cross-env NODE_ENV=test mocha \"test/**/*Test.js\"",
-    "testsuite": "cross-env NODE_ENV=test mocha \"test/$TEST_DIR/**/*Test.js\"",
+    "testsuite": "node ./tools/test.js",
     "unittest": "cross-env NODE_ENV=test mocha \"test/unit/**/*Test.js\"",
     "unittest-cov": "node --harmony node_modules/istanbul/lib/cli.js cover ./node_modules/mocha/bin/_mocha --report html --report text -x \"test/unit/**/*Test.js\" -- \"test/unit/**/*Test.js\"",
     "update-pdfjs": "rm -r app/extensions/pdfjs/; cp -r ../pdf.js/build/chromium/ app/extensions/pdfjs/",
@@ -97,6 +97,7 @@
     "file-loader": "^0.8.5",
     "font-awesome": "^4.5.0",
     "font-awesome-webpack": "0.0.4",
+    "fs-extra": "^2.1.2",
     "immutable": "^3.7.5",
     "immutablediff": "^0.4.2",
     "immutablepatch": "brave/immutable-js-patch",
@@ -126,6 +127,7 @@
     "tldjs": "1.6.2",
     "tracking-protection": "1.1.x",
     "underscore": "1.8.3",
+    "underscore.string": "^3.3.4",
     "url-loader": "^0.5.7",
     "webtorrent-remote": "^1.0.0"
   },

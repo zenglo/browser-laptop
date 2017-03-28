@@ -55,6 +55,9 @@ const addBookmarkMenuItem = (label, siteDetail, closestDestinationDetail, isPare
       if (isParent) {
         siteDetail = siteDetail.set('parentFolderId', closestDestinationDetail && (closestDestinationDetail.get('folderId') || closestDestinationDetail.get('parentFolderId')))
       }
+      if (siteDetail.constructor !== Immutable.Map) {
+        siteDetail = Immutable.fromJS(siteDetail)
+      }
       siteDetail = siteDetail.set('location', urlUtil.getLocationIfPDF(siteDetail.get('location')))
       windowActions.setBookmarkDetail(siteDetail, siteDetail, closestDestinationDetail, true)
     }
@@ -1456,7 +1459,7 @@ function onBackButtonHistoryMenu (activeFrame, history, target) {
           if (eventUtil.isForSecondaryAction(e)) {
             windowActions.newFrame({
               location: url,
-              partitionNumber: activeFrame.props.frame.get('partitionNumber')
+              partitionNumber: activeFrame.props.partitionNumber
             }, !!e.shiftKey)
           } else {
             activeFrame.goToIndex(index)
@@ -1500,7 +1503,7 @@ function onForwardButtonHistoryMenu (activeFrame, history, target) {
           if (eventUtil.isForSecondaryAction(e)) {
             windowActions.newFrame({
               location: url,
-              partitionNumber: activeFrame.props.frame.get('partitionNumber')
+              partitionNumber: activeFrame.props.partitionNumber
             }, !!e.shiftKey)
           } else {
             activeFrame.goToIndex(index)

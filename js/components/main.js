@@ -6,8 +6,9 @@ const React = require('react')
 const ImmutableComponent = require('./immutableComponent')
 const Immutable = require('immutable')
 const electron = require('electron')
+const {StyleSheet, css} = require('aphrodite')
 const ipc = electron.ipcRenderer
-// const systemPreferences = electron.remote.systemPreferences
+const systemPreferences = electron.remote.systemPreferences
 
 // Actions
 const appActions = require('../actions/appActions')
@@ -45,6 +46,7 @@ const LongPressButton = require('./longPressButton')
 const Menubar = require('../../app/renderer/components/menubar')
 const WindowCaptionButtons = require('../../app/renderer/components/windowCaptionButtons')
 const CheckDefaultBrowserDialog = require('../../app/renderer/components/checkDefaultBrowserDialog')
+
 // Constants
 const appConfig = require('../constants/appConfig')
 const messages = require('../constants/messages')
@@ -75,6 +77,7 @@ const debounce = require('../lib/debounce')
 const {currentWindow, isMaximized, isFocused, isFullScreen} = require('../../app/renderer/currentWindow')
 const emptyMap = new Immutable.Map()
 const emptyList = new Immutable.List()
+const {makeImmutable} = require('../../app/common/state/immutableUtil')
 
 class Main extends ImmutableComponent {
   constructor () {
@@ -232,7 +235,8 @@ class Main extends ImmutableComponent {
     // Navigates back/forward on macOS two-finger swipe
     var trackingFingers = false
     var swipeGesture = false
-    var isSwipeOnEdge = false
+    var isSwipeOnLeftEdge = false
+    var isSwipeOnRightEdge = false
     var deltaX = 0
     var deltaY = 0
     var startTime = 0
@@ -278,19 +282,17 @@ class Main extends ImmutableComponent {
       swipeGesture = false
     })
     ipc.on('scroll-touch-begin', function () {
-      if (swipeGesture) {
-        // TODO(Anthony): respecting system settings on cr54
-        // systemPreferences.isSwipeTrackingFromScrollEventsEnabled()) {
+      if (swipeGesture &&
+        systemPreferences.isSwipeTrackingFromScrollEventsEnabled()) {
         trackingFingers = true
-        isSwipeOnEdge = false
         startTime = (new Date()).getTime()
       }
     })
     ipc.on('scroll-touch-end', function () {
-      if (time > 50 && trackingFingers && Math.abs(deltaY) < 50 && isSwipeOnEdge) {
-        if (deltaX > 70) {
+      if (time > 50 && trackingFingers && Math.abs(deltaY) < 50) {
+        if (deltaX > 70 && isSwipeOnRightEdge) {
           ipc.emit(messages.SHORTCUT_ACTIVE_FRAME_FORWARD)
-        } else if (deltaX < -70) {
+        } else if (deltaX < -70 && isSwipeOnLeftEdge) {
           ipc.emit(messages.SHORTCUT_ACTIVE_FRAME_BACK)
         }
       }
@@ -300,7 +302,17 @@ class Main extends ImmutableComponent {
       startTime = 0
     })
     ipc.on('scroll-touch-edge', function () {
-      isSwipeOnEdge = true
+      if (deltaX > 0 && !isSwipeOnRightEdge) {
+        isSwipeOnRightEdge = true
+        isSwipeOnLeftEdge = false
+        time = 0
+        deltaX = 0
+      } else if (deltaX < 0 && !isSwipeOnLeftEdge) {
+        isSwipeOnLeftEdge = true
+        isSwipeOnRightEdge = false
+        time = 0
+        deltaX = 0
+      }
     })
     ipc.on(messages.LEAVE_FULL_SCREEN, this.exitFullScreen.bind(this))
   }
@@ -880,6 +892,29 @@ class Main extends ImmutableComponent {
     return null
   }
 
+  getTotalBlocks (frames) {
+    if (!frames) {
+      return false
+    }
+
+    frames = makeImmutable(frames)
+
+    const ads = frames.getIn(['adblock', 'blocked'])
+    const trackers = frames.getIn(['trackingProtection', 'blocked'])
+    const scripts = frames.getIn(['noScript', 'blocked'])
+    const fingerprint = frames.getIn(['fingerprintingProtection', 'blocked'])
+    const blocked = (ads && ads.size ? ads.size : 0) +
+      (trackers && trackers.size ? trackers.size : 0) +
+      (scripts && scripts.size ? scripts.size : 0) +
+      (fingerprint && fingerprint.size ? fingerprint.size : 0)
+
+    return (blocked === 0)
+      ? false
+      : ((blocked > 99)
+        ? '99+'
+        : blocked)
+  }
+
   render () {
     const comparatorByKeyAsc = (a, b) => a.get('key') > b.get('key')
       ? 1 : b.get('key') > a.get('key') ? -1 : 0
@@ -936,6 +971,7 @@ class Main extends ImmutableComponent {
 
     const appStateSites = this.props.appState.get('sites')
     const activeTabShowingMessageBox = !!(activeTab && activeTab.get('messageBoxDetail'))
+    const totalBlocks = activeFrame ? this.getTotalBlocks(activeFrame) : false
 
     return <div id='window'
       className={cx({
@@ -1065,6 +1101,13 @@ class Main extends ImmutableComponent {
                 {
                   customTitlebar.captionButtonsVisible && !customTitlebar.menubarVisible
                   ? <span className='buttonSeparator' />
+                  : null
+                }
+                {
+                  !this.braveShieldsDisabled && totalBlocks
+                  ? <div className={css(styles.lionBadge)} data-test-id='lionBadge'>
+                    {totalBlocks}
+                  </div>
                   : null
                 }
               </div>
@@ -1341,5 +1384,22 @@ class Main extends ImmutableComponent {
     </div>
   }
 }
+
+const styles = StyleSheet.create({
+  lionBadge: {
+    right: '2px',
+    position: 'absolute',
+    top: '15px',
+    color: '#FFF',
+    borderRadius: '2px',
+    padding: '1px 2px',
+    pointerEvents: 'none',
+    font: '7pt "Arial Narrow"',
+    textAlign: 'center',
+    border: '.5px solid #FFF',
+    background: '#555555',
+    minWidth: '9px'
+  }
+})
 
 module.exports = Main

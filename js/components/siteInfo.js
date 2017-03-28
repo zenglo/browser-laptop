@@ -6,17 +6,21 @@ const React = require('react')
 const ipc = require('electron').ipcRenderer
 const ImmutableComponent = require('./immutableComponent')
 const cx = require('../lib/classSet')
+const {isPotentialPhishingUrl} = require('../lib/urlutil')
 const Dialog = require('./dialog')
 const Button = require('./button')
 const appActions = require('../actions/appActions')
+const webviewActions = require('../actions/webviewActions')
 const messages = require('../constants/messages')
 const siteUtil = require('../state/siteUtil')
+const platformUtil = require('../../app/common/lib/platformUtil')
 
 class SiteInfo extends ImmutableComponent {
   constructor () {
     super()
     this.onAllowRunInsecureContent = this.onAllowRunInsecureContent.bind(this)
     this.onDenyRunInsecureContent = this.onDenyRunInsecureContent.bind(this)
+    this.onViewCertificate = this.onViewCertificate.bind(this)
   }
   onAllowRunInsecureContent () {
     appActions.changeSiteSetting(siteUtil.getOrigin(this.location),
@@ -29,6 +33,10 @@ class SiteInfo extends ImmutableComponent {
       'runInsecureContent', this.isPrivate)
     ipc.emit(messages.SHORTCUT_ACTIVE_FRAME_LOAD_URL, {}, this.location)
     this.props.onHide()
+  }
+  onViewCertificate () {
+    this.props.onHide()
+    webviewActions.showCertificate()
   }
   get isExtendedValidation () {
     return this.props.frameProps.getIn(['security', 'isExtendedValidation'])
@@ -50,6 +58,9 @@ class SiteInfo extends ImmutableComponent {
   }
   get location () {
     return this.props.frameProps.getIn(['location'])
+  }
+  get maybePhishingLocation () {
+    return isPotentialPhishingUrl(this.props.frameProps.getIn(['location']))
   }
   render () {
     // Figure out the partition info display
@@ -80,7 +91,17 @@ class SiteInfo extends ImmutableComponent {
     }
 
     let connectionInfo = null
-    if (this.isBlockedRunInsecureContent) {
+    let viewCertificateButton = null
+    // TODO(Anthony): Hide it until muon support linux
+    if (!platformUtil.isLinux()) {
+      viewCertificateButton =
+        <Button l10nId='viewCertificate' className='primaryButton viewCertificate' onClick={this.onViewCertificate} />
+    }
+
+    if (this.maybePhishingLocation) {
+      connectionInfo =
+        <div className='connectionInfo' data-l10n-id='phishingConnectionInfo' />
+    } else if (this.isBlockedRunInsecureContent) {
       connectionInfo =
         <li>
           <ul>
@@ -104,10 +125,16 @@ class SiteInfo extends ImmutableComponent {
         </li>
     } else if (this.isSecure === true) {
       connectionInfo =
-        <div className='connectionInfo' data-l10n-id='secureConnectionInfo' />
+        <div>
+          <div className='connectionInfo' data-l10n-id='secureConnectionInfo' />
+          {viewCertificateButton}
+        </div>
     } else if (this.isSecure === 1) {
       connectionInfo =
-        <div className='connectionInfo' data-l10n-id='partiallySecureConnectionInfo' />
+        <div>
+          <div className='connectionInfo' data-l10n-id='partiallySecureConnectionInfo' />
+          {viewCertificateButton}
+        </div>
     } else {
       connectionInfo =
         <div className='connectionInfo' data-l10n-id='insecureConnectionInfo' />
