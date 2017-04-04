@@ -38,6 +38,8 @@ const syncEnabled = () => {
 
 let deviceId = null /** @type {Array|null} */
 let pollIntervalId = null
+let lastFetchTimestamp = null
+let ipcSender = null
 
 let deviceIdSent = false
 let bookmarksToolbarShown = false
@@ -154,6 +156,40 @@ const doAction = (sender, action) => {
   }
 }
 
+const setLastFetchTimestamp = (timestamp) => {
+  lastFetchTimestamp = timestamp
+  appActions.saveSyncInitData(null, null, timestamp)
+}
+
+/**
+ * Poll for new Sync records after a timestamp.
+ * @param {Array.<String>=} categoryNames e.g. ['BOOKMARKS']
+ * @param {number=} startAt only return records after this timestamp. if unspecified, uses and updates the global lastFetchTimestamp
+ */
+const poll = (categoryNames, startAt) => {
+  if (typeof categoryNames === 'undefined') {
+    categoryNames = []
+    for (let type in CATEGORY_MAP) {
+      let item = CATEGORY_MAP[type]
+      if (item.settingName && getSetting(settings[item.settingName]) === true) {
+        categoryNames.push(item.categoryName)
+      }
+    }
+  }
+  if (typeof startAt === 'undefined') {
+    startAt = Number(lastFetchTimestamp)
+    setLastFetchTimestamp(Date.now())
+  }
+  ipcSender.send(messages.FETCH_SYNC_RECORDS, categoryNames, startAt)
+}
+
+const refreshPollInterval = () => {
+  if (pollIntervalId !== null) {
+    clearInterval(pollIntervalId)
+  }
+  pollIntervalId = setInterval(poll, config.fetchInterval)
+}
+
 /**
  * Called when sync client is done initializing.
  * @param {boolean} isFirstRun - whether this is the first time sync is running
@@ -163,9 +199,10 @@ module.exports.onSyncReady = (isFirstRun, e) => {
   if (!syncEnabled()) {
     return
   }
+  ipcSender = e.sender
   if (!deviceIdSent && isFirstRun) {
     // Sync the device id for this device
-    sendSyncRecords(e.sender, writeActions.CREATE, [{
+    sendSyncRecords(ipcSender, writeActions.CREATE, [{
       name: 'device',
       objectId: syncUtil.newObjectId(['sync']),
       value: {
@@ -212,7 +249,7 @@ module.exports.onSyncReady = (isFirstRun, e) => {
       folderToObjectId[folderId] = record.objectId
     }
 
-    sendSyncRecords(e.sender, writeActions.CREATE, [record])
+    sendSyncRecords(ipcSender, writeActions.CREATE, [record])
   }
 
   // Sync bookmarks that have not been synced yet.
@@ -227,27 +264,15 @@ module.exports.onSyncReady = (isFirstRun, e) => {
       return !value.get('objectId') && syncUtil.isSyncable('siteSetting', value)
     }).toJS()
   if (siteSettings) {
-    sendSyncRecords(e.sender, writeActions.UPDATE,
+    sendSyncRecords(ipcSender, writeActions.UPDATE,
       Object.keys(siteSettings).map((item) => {
         return syncUtil.createSiteSettingsData(item, siteSettings[item])
       }))
   }
   // Periodically poll for new records
-  let startAt = appState.getIn(['sync', 'lastFetchTimestamp']) || 0
-  const poll = () => {
-    let categoryNames = []
-    for (let type in CATEGORY_MAP) {
-      let item = CATEGORY_MAP[type]
-      if (item.settingName && getSetting(settings[item.settingName]) === true) {
-        categoryNames.push(item.categoryName)
-      }
-    }
-    e.sender.send(messages.FETCH_SYNC_RECORDS, categoryNames, startAt)
-    startAt = syncUtil.now()
-    appActions.saveSyncInitData(null, null, startAt)
-  }
+  lastFetchTimestamp = appState.getIn(['sync', 'lastFetchTimestamp']) || 0
   poll()
-  pollIntervalId = setInterval(poll, config.fetchInterval)
+  refreshPollInterval()
 }
 
 /**
@@ -334,11 +359,11 @@ module.exports.init = function (appState) {
   ipcMain.on(messages.SYNC_DEBUG, (e, msg) => {
     log(msg)
   })
-  ipcMain.on(messages.GET_EXISTING_OBJECTS, (event, categoryName, records) => {
+  ipcMain.on(messages.GET_EXISTING_OBJECTS, (event, categoryName, records, lastRecordTimestamp) => {
     if (!syncEnabled()) {
       return
     }
-    log(`getting existing objects for ${records.length} ${categoryName}`)
+    log(`getting existing objects for ${records.length} ${categoryName}, last record ${lastRecordTimestamp}`)
     if (!CATEGORY_NAMES.includes(categoryName) || !records || !records.length) {
       return
     }
@@ -348,6 +373,14 @@ module.exports.init = function (appState) {
       return [safeRecord, existingObject]
     })
     event.sender.send(messages.RESOLVE_SYNC_RECORDS, categoryName, recordsAndExistingObjects)
+
+    // If we received a big batch of records (max batch size 1000)
+    // it's likely there are more records remaining so we should
+    // fetch again.
+    if (records.length > 300) {
+      poll([categoryName], lastRecordTimestamp)
+      refreshPollInterval()
+    }
   })
   ipcMain.on(messages.RESOLVED_SYNC_RECORDS, (event, categoryName, records) => {
     if (!records || !records.length) {
@@ -375,7 +408,9 @@ module.exports.init = function (appState) {
  * Called when sync is disabled.
  */
 module.exports.stop = function () {
+  ipcSender = null
   if (pollIntervalId !== null) {
     clearInterval(pollIntervalId)
+    pollIntervalId = null
   }
 }

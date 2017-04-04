@@ -317,13 +317,6 @@ const getFolderIdByObjectId = (objectId, appState) => {
 }
 
 /**
- * Gets current time in seconds
- */
-module.exports.now = () => {
-  return Math.floor(Date.now() / 1000)
-}
-
-/**
  * Checks whether an object is syncable as a record of the given type
  * @param {string} type
  * @param {Immutable.Map} item
