@@ -104,16 +104,16 @@ const UrlUtil = {
       return true
     }
     // for cases where we have scheme and we dont want spaces in domain names
-    const caseDomain = /^[\w]{2,5}:\/\/[^\s\/]+\//
+    const caseDomain = /^[\w]{2,5}:\/\/[^\s/]+\//
     // for cases, quoted strings
     const case1Reg = /^".*"$/
     // for cases:
     // - starts with "?" or "."
     // - contains "? "
     // - ends with "." (and was not preceded by a domain or /)
-    const case2Reg = /(^\?)|(\?.+\s)|(^\.)|(^[^.+\..+]*[^\/]*\.$)/
+    const case2Reg = /(^\?)|(\?.+\s)|(^\.)|(^[^.+..+]*[^/]*\.$)/
     // for cases, pure string
-    const case3Reg = /[\?\.\/\s:]/
+    const case3Reg = /[?./\s:]/
     // for cases, data:uri, view-source:uri and about
     const case4Reg = /^(data|view-source|mailto|about|chrome-extension|magnet):.*/
 
@@ -203,7 +203,7 @@ const UrlUtil = {
    * @returns {Boolean} Whether or not this is a data url.
    */
   isDataUrl: function (url) {
-    return url.toLowerCase().startsWith('data:')
+    return typeof url === 'string' && url.toLowerCase().startsWith('data:')
   },
 
   /**
@@ -214,7 +214,7 @@ const UrlUtil = {
   isPotentialPhishingUrl: function (url) {
     if (typeof url !== 'string') { return false }
     const protocol = urlParse(url.trim().toLowerCase()).protocol
-    return ['data:', 'blob:', 'javascript:'].includes(protocol)
+    return ['data:', 'blob:'].includes(protocol)
   },
 
   /**

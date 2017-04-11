@@ -4,9 +4,9 @@
   min-width: 704px;
 
   .siteDetailsPageContent {
-    &.aboutAbout {
+    &.aboutBrave {
       .sortableTable {
-        -webkit-user-select: text;
+        user-select: text;
         margin-left: @aboutPageSectionPadding;
         width: 400px;
         td {
@@ -14,12 +14,9 @@
           padding-left: 8px;
         }
       }
-      ul {
-        margin-left: @aboutPageSectionPadding + @aboutPageSectionPadding;
-      }
     }
     .sortableTable {
-      -webkit-user-select: none;
+      user-select: none;
       // Time visited
       .time {
         font-size: 11pt;

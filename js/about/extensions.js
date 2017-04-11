@@ -12,6 +12,7 @@ const aboutActions = require('./aboutActions')
 const {StyleSheet, css} = require('aphrodite/no-important')
 const globalStyles = require('../../app/renderer/components/styles/global')
 const commonStyles = require('../../app/renderer/components/styles/commonStyles')
+const { bravifyText } = require('../../app/renderer/lib/extensionsUtil')
 
 const ipc = window.chrome.ipcRenderer
 
@@ -19,7 +20,6 @@ const ipc = window.chrome.ipcRenderer
 require('../../less/about/common.less')
 require('../../node_modules/font-awesome/css/font-awesome.css')
 
-const bravifyText = (text) => text.replace(/Google Chrome/g, 'Brave')
 class ExtensionItem extends ImmutableComponent {
   constructor () {
     super()
@@ -59,7 +59,7 @@ class ExtensionItem extends ImmutableComponent {
         <span className={css(styles.extensionVersion)}>{this.props.extension.get('version')}</span>
         {
           !['__MSG_extDescriptionGoogleChrome__', '__MSG_appDesc__'].includes(this.props.extension.get('description'))
-          ? <div data-test-id='extensionDescription'>{bravifyText(this.props.extension.get('description'))}</div>
+          ? <div data-test-id='extensionDescription' data-l10n-id={this.props.extension.get('description')} />
           : null
         }
         <div className='extensionPath'><span data-l10n-id='extensionPathLabel' /> <span>{this.props.extension.get('base_path')}</span></div>
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
 
   listItem: {
     display: 'flex',
-    WebkitUserSelect: 'text'
+    userSelect: 'text'
   },
 
   isDisabled: {

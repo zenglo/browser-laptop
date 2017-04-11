@@ -1,7 +1,6 @@
 /* global describe, beforeEach, it */
 
 const Brave = require('../../../lib/brave')
-const messages = require('../../../../js/constants/messages')
 const {
   urlInput, backButton, forwardButton,
   msgBoxSuppress, msgBoxSuppressTrue, msgBoxMessage, msgBoxTitle
@@ -37,10 +36,7 @@ describe('MessageBox component tests', function () {
 
   function * showsExpectedMessage (client) {
     yield client
-      .getText(msgBoxMessage).then((val) => {
-        // console.log('expected: ' + alertText + '; actual: ' + val)
-        assert(val === alertText)
-      })
+      .waitForTextValue(msgBoxMessage, alertText)
   }
 
   function * storesDetailsInTabState (client) {
@@ -183,7 +179,7 @@ describe('MessageBox component tests', function () {
         const page2 = Brave.server.url('page2.html')
         // open a new tab
         yield this.app.client
-          .ipcSend(messages.SHORTCUT_NEW_FRAME, page1)
+          .newTab({ url: page1 })
           .waitForTabCount(2)
 
         yield this.app.client
@@ -205,12 +201,7 @@ describe('MessageBox component tests', function () {
         // verify link was followed
         yield this.app.client
           .windowByUrl(Brave.browserWindowUrl)
-          .waitUntil(function () {
-            return this.getText('[data-test-id="tab"][data-test-active-tab="true"] [data-test-id="tabTitle"]')
-              .then((title) => {
-                return title === 'Page 2'
-              })
-          })
+          .waitForTextValue('[data-test-id="tab"][data-test-active-tab="true"] [data-test-id="tabTitle"]', 'Page 2')
       })
 
       it('lets you use the back button', function * () {
@@ -221,12 +212,7 @@ describe('MessageBox component tests', function () {
 
         // verify page is previous
         yield this.app.client
-          .waitUntil(function () {
-            return this.getText('[data-test-id="tab"][data-test-active-tab="true"] [data-test-id="tabTitle"]')
-              .then((title) => {
-                return title === 'Page 2'
-              })
-          })
+          .waitForTextValue('[data-test-id="tab"][data-test-active-tab="true"] [data-test-id="tabTitle"]', 'Page 2')
       })
 
       it('lets you use the forward button', function * () {
@@ -234,7 +220,7 @@ describe('MessageBox component tests', function () {
         yield this.app.client
           .windowByUrl(Brave.browserWindowUrl)
           .leftClick(backButton)
-          .waitForVisible(forwardButton + '[disabled]', 1000, true)
+          .waitForElementCount(forwardButton + '[disabled]', 0)
 
         // click forward button
         yield this.app.client
@@ -242,12 +228,7 @@ describe('MessageBox component tests', function () {
 
         // verify page is previous
         yield this.app.client
-          .waitUntil(function () {
-            return this.getText('[data-test-id="tab"][data-test-active-tab="true"] [data-test-id="tabTitle"]')
-              .then((title) => {
-                return title === 'Page 1'
-              })
-          })
+          .waitForTextValue('[data-test-id="tab"][data-test-active-tab="true"] [data-test-id="tabTitle"]', 'Page 1')
       })
 
       it('original tab does not respond to escape or enter being pressed', function * () {

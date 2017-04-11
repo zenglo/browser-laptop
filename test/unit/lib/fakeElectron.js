@@ -15,6 +15,9 @@ const fakeElectron = {
       on: function () {
       }
     },
+    clipboard: {
+      readText: function () { return '' }
+    },
     getCurrentWindow: function () {
       return {
         on: () => {},
@@ -22,6 +25,11 @@ const fakeElectron = {
         isFullScreen: () => false,
         isMaximized: () => false,
         webContents: {}
+      }
+    },
+    Menu: {
+      buildFromTemplate: (template) => {
+        return require('./fakeElectronMenu')
       }
     }
   },

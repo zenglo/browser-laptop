@@ -62,8 +62,11 @@ class UpdateHello extends ImmutableComponent {
 
 class UpdateHide extends ImmutableComponent {
   render () {
-    return <Button className={css(commonStyles.notificationItem__button) + ' ' + 'whiteButton'}
-      data-test-id='updateHide'
+    return <Button className={cx({
+      [css(commonStyles.notificationItem__button)]: true,
+      whiteButton: true
+    })}
+      testId='updateHide'
       l10nId='updateHide'
       onClick={appActions.setUpdateStatus.bind(null, this.props.reset ? UpdateStatus.UPDATE_NONE : undefined, false, undefined)} />
   }
@@ -74,8 +77,11 @@ class UpdateLog extends ImmutableComponent {
     remote.shell.openItem(path.join(remote.app.getPath('userData'), 'updateLog.log'))
   }
   render () {
-    return <Button className={css(commonStyles.notificationItem__button) + ' ' + 'whiteButton'}
-      data-test-id='updateViewLogButton'
+    return <Button className={cx({
+      [css(commonStyles.notificationItem__button)]: true,
+      whiteButton: true
+    })}
+      testId='updateViewLogButton'
       l10nId='updateViewLog'
       onClick={this.onViewLog.bind(this)} />
   }
@@ -92,18 +98,27 @@ class UpdateAvailable extends ImmutableComponent {
       <span className={css(styles.flexAlignCenter)} data-test-id='notificationOptions'>
         {
           this.props.metadata && this.props.metadata.get('notes')
-          ? <Button className={css(commonStyles.notificationItem__button) + ' ' + 'whiteButton'}
-            data-test-id='updateDetails'
+          ? <Button className={cx({
+            [css(commonStyles.notificationItem__button)]: true,
+            whiteButton: true
+          })}
+            testId='updateDetails'
             l10nId='updateDetails'
             onClick={windowActions.setReleaseNotesVisible.bind(null, true)} />
           : null
         }
-        <Button className={css(commonStyles.notificationItem__button) + ' ' + 'whiteButton'}
-          data-test-id='updateLater'
+        <Button className={cx({
+          [css(commonStyles.notificationItem__button)]: true,
+          whiteButton: true
+        })}
+          testId='updateLater'
           l10nId='updateLater'
           onClick={appActions.setUpdateStatus.bind(null, UpdateStatus.UPDATE_AVAILABLE_DEFERRED, false, undefined)} />
-        <Button className={css(commonStyles.notificationItem__button) + ' ' + 'primaryButton'}
-          data-test-id='updateNow'
+        <Button className={cx({
+          [css(commonStyles.notificationItem__button)]: true,
+          primaryButton: true
+        })}
+          testId='updateNow'
           l10nId='updateNow'
           onClick={appActions.setUpdateStatus.bind(null, UpdateStatus.UPDATE_APPLYING_RESTART, false, undefined)} />
       </span>
@@ -196,7 +211,10 @@ class UpdateBar extends ImmutableComponent {
     }
 
     // 'notificationItem' for styling with notificationBar.less
-    return <div className={updateBarStyle + ' ' + 'notificationItem'} data-test-id='updateBar'>
+    return <div className={cx({
+      [updateBarStyle]: true,
+      notificationItem: true
+    })} data-test-id='updateBar'>
       {
         updateStatus === UpdateStatus.UPDATE_AVAILABLE ? <UpdateAvailable metadata={this.props.updates.get('metadata')} updateStatus={updateStatus} /> : null
       }

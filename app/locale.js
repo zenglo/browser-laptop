@@ -76,6 +76,7 @@ var rendererIdentifiers = function () {
     'closeOtherTabs',
     'closeTabsToRight',
     'closeTabsToLeft',
+    'closeTabPage',
     'bookmarkPage',
     'bookmarkLink',
     'openFile',
@@ -84,7 +85,6 @@ var rendererIdentifiers = function () {
     'importFrom',
     'closeWindow',
     'savePageAs',
-    'spreadTheWord',
     'share',
     'undo',
     'redo',
@@ -111,6 +111,7 @@ var rendererIdentifiers = function () {
     'cleanReload',
     'reload',
     'clone',
+    'detach',
     'readingView',
     'tabManager',
     'textEncoding',
@@ -219,6 +220,7 @@ var rendererIdentifiers = function () {
     'noThanks',
     'neverForThisSite',
     'passwordsManager',
+    'extensionsManager',
     'downloadItemPause',
     'downloadItemResume',
     'downloadItemCancel',
@@ -229,6 +231,7 @@ var rendererIdentifiers = function () {
     'downloadItemClear',
     'downloadToolbarHide',
     'downloadItemClearCompleted',
+    'l10nWebtorrentDesc',
     // Caption buttons in titlebar (min/max/close - Windows only)
     'windowCaptionButtonMinimize',
     'windowCaptionButtonMaximize',
@@ -238,7 +241,9 @@ var rendererIdentifiers = function () {
     'importSuccess',
     'licenseTextOk',
     'closeFirefoxWarningOk',
-    'importSuccessOk'
+    'importSuccessOk',
+    'connectionError',
+    'unknownError'
   ]
 }
 

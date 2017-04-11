@@ -411,7 +411,7 @@
   .menubar {
     display: flex;
     cursor: default;
-    -webkit-user-select: none;
+    user-select: none;
     flex-grow: 1;
     margin-top: 2px;
     height: 19px;
@@ -512,19 +512,11 @@
     margin-left: 3px;
     position: relative;
 
-    .extensionButton {
-      -webkit-app-region: no-drag;
-      background-size: contain;
-      height: 17px;
-      margin: 4px 4px 0 0;
-      opacity: 0.85;
-    }
-
     .braveMenu {
       width: @navbarBraveButtonWidth;
       margin-right: @navbarButtonSpacing;
       -webkit-app-region: no-drag;
-      -webkit-user-select: none;
+      user-select: none;
 
       &.braveShieldsDown {
         -webkit-filter: grayscale(100%);
@@ -635,7 +627,7 @@
     transition: margin @transitionDuration ease-in-out;
 
     button {
-      -webkit-user-select: none;
+      user-select: none;
       color: @buttonColor;
       cursor: default;
       border-radius: 4px;
@@ -668,19 +660,24 @@
     z-index: @zindexUrlbarNotLegend;
   }
 
-  input:focus + legend:before {
+  legend:before {
     content: ' ';
     position: absolute;
     background: @navigationBarBackgroundActive;
-    border-radius: 4px;
-    box-shadow: 0 0 1px @focusUrlbarOutline, inset 0 0 2px @focusUrlbarOutline, inset 0 1px 8px rgba(0, 137, 255, 0.1);
+    border-radius: 0 4px 4px 0;
     color: #333;
+    box-shadow: inset 0 0 0 1px @urlBarOutline, inset 0 0 0 3px @focusUrlbarOutline;
     outline: none;
     top: 0;
     bottom: 0;
     right: 0;
     left: 0;
     z-index: @zindexNavigationBar;
+    display: none;
+  }
+
+  input:focus + legend:before {
+    display: block;
   }
 
   #navigator:not(.titleMode) & {
@@ -703,7 +700,7 @@
   box-sizing: border-box;
   padding: 0;
   position: relative;
-  -webkit-user-select: none;
+  user-select: none;
   z-index: @zindexNavigationBar;
 
   // #6253 #6680
@@ -726,20 +723,22 @@
   &:not(.titleMode) {
     > * {
       animation: fadeIn .6s;
-      opacity: 0;
-      animation-fill-mode: forwards;
     }
 
     .urlbarForm {
         &.noBorderRadius {
         border-radius: 0;
+
+        legend:before {
+          border-radius: 0;
+        }
       }
     }
 
     // Create 25x25 squares and place the buttons at the center of each container
     .bookmarkButtonContainer,
     .addPublisherButtonContainer {
-      border: 1px solid #bbb;
+      border: 1px solid @urlBarOutline;
       border-radius: @borderRadiusURL;
       box-sizing: border-box;
       display: flex;
@@ -847,7 +846,7 @@
 
     /* Disable selection of button text */
     > span {
-       -webkit-user-select: none;
+       user-select: none;
     }
 
     .inputbar-wrapper {

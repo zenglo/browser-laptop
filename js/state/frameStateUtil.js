@@ -6,6 +6,10 @@ const Immutable = require('immutable')
 const config = require('../constants/config')
 const {tabCloseAction} = require('../../app/common/constants/settingsEnums')
 const urlParse = require('../../app/common/urlParse')
+const {makeImmutable} = require('../../app/common/state/immutableUtil')
+
+const comparatorByKeyAsc = (a, b) => a.get('key') > b.get('key')
+      ? 1 : b.get('key') > a.get('key') ? -1 : 0
 
 const matchFrame = (queryInfo, frame) => {
   queryInfo = queryInfo.toJS ? queryInfo.toJS() : queryInfo
@@ -28,6 +32,22 @@ function getFrameDisplayIndex (windowState, frame) {
   return findDisplayIndexForFrameKey(windowState.get('frames'), frame)
 }
 
+function getFrames (windowState) {
+  return windowState.get('frames')
+}
+
+function getSortedFrames (windowState) {
+  return windowState.get('frames').sort(comparatorByKeyAsc)
+}
+
+function getPinnedFrames (windowState) {
+  return windowState.get('frames').filter((frame) => frame.get('pinnedLocation'))
+}
+
+function getNonPinnedFrames (windowState) {
+  return windowState.get('frames').filter((frame) => !frame.get('pinnedLocation'))
+}
+
 function getFrameIndex (windowState, frame) {
   return findIndexForFrameKey(windowState.get('frames'), frame)
 }
@@ -40,6 +60,38 @@ function getActiveFrameIndex (windowState) {
   return getFrameIndex(windowState, windowState.get('activeFrameKey'))
 }
 
+// TODO(bridiver) - will be used for pinned tab transfer
+function restoreFramePropsFromTab (tab) {
+  let frame = (tab && tab.get('frame')) || new Immutable.Map()
+  return frame.delete('activeShortcut')
+      .delete('activeShortcutDetails')
+      .delete('guestInstanceId')
+      .delete('key')
+      .delete('tabId')
+      .delete('parentFrameKey')
+}
+
+function getFramePropsFromTab (tab) {
+  let frame = new Immutable.Map()
+  if (tab) {
+    const isTabPinned = tab.get('pinned')
+    const url = tab.get('url')
+    let pinnedLocation = 'about:blank'
+
+    if (isTabPinned && url !== 'about:blank' && url !== '') {
+      pinnedLocation = url
+    }
+
+    if (!isTabPinned) {
+      pinnedLocation = null
+    }
+
+    frame = frame.set('pinnedLocation', pinnedLocation)
+    frame = frame.set('title', tab.get('title'))
+  }
+  return frame
+}
+
 function getActiveFrameTabId (windowState) {
   const activeFrame = getActiveFrame(windowState)
   return activeFrame && activeFrame.get('tabId')
@@ -47,6 +99,10 @@ function getActiveFrameTabId (windowState) {
 
 function getFrameByIndex (windowState, i) {
   return windowState.getIn(['frames', i])
+}
+
+function findFrameInList (frames, key) {
+  return frames.find(matchFrame.bind(null, {key}))
 }
 
 // This will eventually go away fully when we replace frameKey by tabId
@@ -82,6 +138,35 @@ function getFrameByDisplayIndex (windowState, i) {
 
 function getFrameByKey (windowState, key) {
   return find(windowState, {key})
+}
+
+function isFrameSecure (frame) {
+  frame = makeImmutable(frame)
+  if (frame && frame.getIn(['security', 'isSecure']) != null) {
+    return frame.getIn(['security', 'isSecure'])
+  } else {
+    return false
+  }
+}
+
+function isFrameLoading (frame) {
+  frame = makeImmutable(frame)
+  return frame && frame.get('loading')
+}
+
+function startLoadTime (frame) {
+  frame = makeImmutable(frame)
+  return frame && frame.get('startLoadTime')
+}
+
+function endLoadTime (frame) {
+  frame = makeImmutable(frame)
+  return frame && frame.get('endLoadTime')
+}
+
+function getHistory (frame) {
+  frame = makeImmutable(frame)
+  return (frame && frame.get('history')) || Immutable.fromJS([])
 }
 
 function isFrameKeyPinned (frames, key) {
@@ -245,10 +330,9 @@ function isAncestorFrameKey (frames, frame, parentFrameKey) {
 }
 
 function getPartitionNumber (partition) {
-  console.log(partition)
-  const regex = /partition-(\d+)/
+  const regex = /(?:persist:)?partition-(\d+)/
   const matches = regex.exec(partition)
-  return matches && matches[0]
+  return Number((matches && matches[1]) || 0)
 }
 
 function isPrivatePartition (partition) {
@@ -260,13 +344,16 @@ function isSessionPartition (partition) {
 }
 
 function getPartition (frameOpts) {
-  let partition = 'persist:default'
-  if (frameOpts.get('isPrivate')) {
-    partition = 'default'
-  } else if (frameOpts.get('partitionNumber')) {
-    partition = `persist:partition-${frameOpts.get('partitionNumber')}`
+  return getPartitionFromNumber(frameOpts.get('partitionNumber'), frameOpts.get('isPrivate'))
+}
+
+function getPartitionFromNumber (partitionNumber, incognito) {
+  if (!partitionNumber && !incognito) {
+    return 'persist:default'
+  } else if (incognito) {
+    return 'default'
   }
-  return partition
+  return `persist:partition-${partitionNumber}`
 }
 
 /**
@@ -285,7 +372,7 @@ const tabFromFrame = (frame) => {
     isPrivate: frame.get('isPrivate'),
     partitionNumber: frame.get('partitionNumber'),
     frameKey: frame.get('key'),
-    loading: frame.get('loading'),
+    loading: isFrameLoading(frame),
     provisionalLocation: frame.get('provisionalLocation'),
     pinnedLocation: frame.get('pinnedLocation'),
     location: frame.get('location')
@@ -307,6 +394,15 @@ const tabFromFrame = (frame) => {
   }
 }
 
+const frameOptsFromFrame = (frame) => {
+  return frame
+    .delete('key')
+    .delete('parentFrameKey')
+    .delete('activeShortcut')
+    .delete('activeShortcutDetails')
+    .deleteIn(['navbar', 'urlbar', 'suggestions'])
+}
+
 /**
  * Adds a frame specified by frameOpts and newKey and sets the activeFrameKey
  * @return Immutable top level application state ready to merge back in
@@ -319,21 +415,12 @@ function addFrame (windowState, tabs, frameOpts, newKey, partitionNumber, active
   // from a renderer initiated navigation (window.open, cmd/ctrl-click, etc...)
   const delayedLoadUrl = frameOpts.delayedLoadUrl
   delete frameOpts.delayedLoadUrl
-  const urlBarFocused = activeFrameKey === newKey &&
-    url === config.defaultUrl &&
-    delayedLoadUrl === undefined
+
   const location = delayedLoadUrl || url // page url
 
   // Only add pin requests if it's not already added
   const isPinned = frameOpts.isPinned
   delete frameOpts.isPinned
-  if (isPinned) {
-    const alreadyPinnedFrameProps = frames.find((frame) =>
-      frame.get('pinnedLocation') === location && frame.get('partitionNumber') === partitionNumber)
-    if (alreadyPinnedFrameProps) {
-      return {}
-    }
-  }
 
   // TODO: longer term get rid of parentFrameKey completely instead of
   // calculating it here.
@@ -366,8 +453,9 @@ function addFrame (windowState, tabs, frameOpts, newKey, partitionNumber, active
           searchResults: [],
           suggestionList: null
         },
-        selected: urlBarFocused,
-        focused: urlBarFocused,
+        selected: false,
+        // URL load-start will focus the webview if it's not newtab.
+        focused: true,
         active: false
       }
     },
@@ -493,6 +581,67 @@ function removeFrame (frames, tabs, closedFrames, frameProps, activeFrameKey, fr
     frames: newFrames
   }
 }
+/**
+ * Removes a frames specified by framePropsList
+ * @return Immutable top level application state ready to merge back in
+ */
+function removeFrames (frames, tabs, closedFrames, framePropsList, activeFrameRemoved, activeFrameKey, closeAction) {
+  function getLastTab (newFrames) {
+    const sorted = newFrames
+      .filter((frame) => !frame.get('pinnedLocation'))
+      .sortBy((item) => item.get('key'))
+
+    return (sorted.size === 0) ? 0 : sorted.last().get('key')
+  }
+
+  function getLastActiveTab (newFrames) {
+    const sorted = newFrames
+      .filter((frame) => !frame.get('pinnedLocation'))
+      .sortBy((item) => item.get('lastAccessedTime') || 0)
+
+    return (sorted.size === 0) ? 0 : sorted.last().get('key')
+  }
+
+  let newFrames = makeImmutable(frames)
+  let newTabs = makeImmutable(tabs)
+
+  framePropsList.forEach((frameProps) => {
+    if (!frameProps.get('isPrivate') && frameProps.get('location') !== 'about:newtab') {
+      frameProps = frameProps.set('isFullScreen', false)
+      closedFrames = closedFrames.push(frameProps)
+      if (frameProps.get('thumbnailBlob')) {
+        window.URL.revokeObjectURL(frameProps.get('thumbnailBlob'))
+      }
+      if (closedFrames.size > config.maxClosedFrames) {
+        closedFrames = closedFrames.shift()
+      }
+    }
+
+    let framePropsIndex = getFramePropsIndex(newFrames, frameProps)
+    newFrames = newFrames.splice(framePropsIndex, 1)
+    newTabs = newTabs.splice(framePropsIndex, 1)
+  })
+
+  // return last non pinned frame index if active frame was removed
+  if (activeFrameRemoved) {
+    switch (closeAction) {
+      case tabCloseAction.LAST_ACTIVE:
+        activeFrameKey = getLastActiveTab(newFrames)
+        break
+      default:
+        activeFrameKey = getLastTab(newFrames)
+        break
+    }
+  }
+
+  return {
+    previewFrameKey: null,
+    activeFrameKey,
+    closedFrames,
+    tabs: newTabs,
+    frames: newFrames
+  }
+}
 
 /**
  * Removes all but the specified frameProps
@@ -544,12 +693,23 @@ module.exports = {
   find,
   isAncestorFrameKey,
   isFrameKeyActive,
+  isFrameSecure,
+  isFrameLoading,
+  startLoadTime,
+  endLoadTime,
+  getHistory,
   isFrameKeyPinned,
   getNonPinnedFrameCount,
   isPrivatePartition,
   isSessionPartition,
+  getFrames,
+  getSortedFrames,
+  getPinnedFrames,
+  getNonPinnedFrames,
   getFrameIndex,
   getFrameDisplayIndex,
+  restoreFramePropsFromTab,
+  getFramePropsFromTab,
   getActiveFrameIndex,
   getActiveFrameDisplayIndex,
   getActiveFrameTabId,
@@ -568,14 +728,18 @@ module.exports = {
   getFramePropPath,
   findIndexForFrameKey,
   findDisplayIndexForFrameKey,
+  findFrameInList,
   getFramePropsIndex,
   getFrameKeysByDisplayIndex,
   getPartition,
+  getPartitionFromNumber,
   addFrame,
   undoCloseFrame,
   removeFrame,
+  removeFrames,
   removeOtherFrames,
   tabFromFrame,
+  frameOptsFromFrame,
   getFrameKeyByTabId,
   getFrameTabPageIndex,
   frameStatePath,

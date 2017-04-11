@@ -5,6 +5,7 @@ const globalStyles = {
     breakpointExtensionButtonPadding: '720px',
     breakpointSmallWin32: '650px',
     breakpointTinyWin32: '500px',
+    breakpointNewPrivateTab: '890px',
     tab: {
       large: '120px',
       largeMedium: '83px',
@@ -16,6 +17,7 @@ const globalStyles = {
     }
   },
   color: {
+    commonTextColor: '#3b3b3b',
     linkColor: '#0099CC',
     highlightBlue: '#37A9FD',
     privateTabBackground: '#665296',
@@ -25,12 +27,14 @@ const globalStyles = {
     chromeSecondary: '#d3d3d3',
     chromeTertiary: '#c7c7c7',
     chromeText: '#555555',
-    tabsBackground: '#ddd',
-    tabsBackgroundInactive: '#ddd',
-    tabsToolbarBorderColor: '#bbb',
     navigationBarBackground: 'white',
     chromeControlsBackground: '#bbb',
     chromeControlsBackground2: 'white',
+    tabsToolbarBorderColor: '#bbb',
+    tabsBackground: '#ddd',
+    tabsBackgroundInactive: '#ddd',
+    commonFormBottomWrapperBackground: '#ddd',
+    commonFormBackgroundColor: '#f7f7f7',
     toolbarBackground: '#eee',
     toolbarBorderColor: '#ccc',
     menuSelectionColor: '#2F7AFB',
@@ -70,7 +74,12 @@ const globalStyles = {
     statsBlue: '#0796fa',
     statsLightGray: '#999999',
     defaultIconBackground: '#F7F7F7',
-    almostInvisible: 'rgba(255,255,255,0.01)'
+    almostInvisible: 'rgba(255,255,255,0.01)',
+    urlBarOutline: '#bbb',
+    alphaWhite: 'rgba(255,255,255,0.8)'
+  },
+  filter: {
+    makeWhite: 'brightness(0) invert(1)'
   },
   radius: {
     borderRadius: '4px',
@@ -120,9 +129,11 @@ const globalStyles = {
     closeIconSize: '13px',
     narrowIconSize: '12px',
     dialogTopOffset: '30px',
+    dialogInsideMargin: '18px',
     paymentsMargin: '20px',
     modalPanelHeaderMarginBottom: '.5em',
-    paddingHorizontal: '30px'
+    paddingHorizontal: '30px',
+    privateTabPadding: '40px'
   },
   shadow: {
     switchShadow: 'inset 0 1px 4px rgba(0, 0, 0, 0.35)',
@@ -167,7 +178,10 @@ const globalStyles = {
   },
   fontSize: {
     tabIcon: '14px',
-    tabTitle: '12px'
+    tabTitle: '12px',
+    settingItemSubtext: '.95rem',
+    flyoutDialog: '13px',
+    prefsPanelHeading: '23px'
   },
   appIcons: {
     clipboard: 'fa fa-clipboard',
@@ -179,7 +193,9 @@ const globalStyles = {
     remove: 'fa fa-times',
     volumeOff: 'fa fa-volume-off',
     volumeOn: 'fa fa-volume-up',
-    exclude: 'fa fa-ban'
+    exclude: 'fa fa-ban',
+    trash: 'fa fa-trash',
+    moreInfo: 'fa fa-info-circle'
   }
 }
 

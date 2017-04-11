@@ -97,6 +97,7 @@ AppStore
   }],
   extensions: {
     [id]: {
+      excluded: boolean, // true if extension was excluded by the user
       base_path: string,
       browserAction: {
         icon: (string|object),
@@ -232,7 +233,7 @@ AppStore
       originalSeed: Array.<number>, // only set for bookmarks that have been synced before a sync profile reset
       parentFolderId: number, // set for bookmarks and bookmark folders only
       partitionNumber: number, // optionally specifies a specific session
-      tags: [string], // empty, 'bookmark', 'bookmark-folder', 'pinned', 'default', or 'reader'
+      tags: [string], // empty, 'bookmark', 'bookmark-folder', 'default', or 'reader'
       themeColor: string, // CSS compatible color string
       title: string
     } // folder: folderId; bookmark/history: location + partitionNumber + parentFolderId
@@ -248,6 +249,7 @@ AppStore
       httpsEverywhere: boolean,
       ledgerPayments: boolean, // false if site should not be paid by the ledger. Defaults to true.
       ledgerPaymentsShown: boolean, // false if site should not be paid by the ledger and should not be shown in the UI. Defaults to true.
+      ledgerPinPercentage: number, // 0 if not pinned, otherwise is pinned with defined percentage
       mediaPermission: boolean,
       midiSysexPermission: boolean,
       notificationsPermission: boolean,
@@ -269,8 +271,12 @@ AppStore
     lastFetchTimestamp: integer // the last time new sync records were fetched in seconds
     deviceId: Array.<number>,
     objectId: Array.<number>, // objectId for this sync device
+    objectsById: {
+      [string of objectId joined by pipes |]: Array.<string> // array key path within appState, so we can do appState.getIn({key path})
+    },
     seed: Array.<number>,
     seedQr: string, // data URL of QR code representing the seed
+    setupError: string? // indicates that an error occurred during sync setup
   },
   tabs: [{
     // persistent properties
@@ -295,6 +301,8 @@ AppStore
     },
     muted: boolean, // is the tab muted
     windowId: number // the windowId that contains the tab
+    guestInstanceId: number,
+    tabId: number
   }],
   temporarySiteSettings: {
     // Same as siteSettings but never gets written to disk
@@ -581,16 +589,18 @@ WindowStore
       hoursSpent: number, // e.g., 2
       minutesSpent: number, // e.g., 3
       percentage: number, // i.e., 0, 1, ... 100
+      pinPercentage: number, // i.e., 0, 1, ... 100
       publisherURL: string, // publisher site, e.g., "https://wikipedia.org/"
       rank: number, // i.e., 1, 2, 3, ...
       score: number, // float indicating the current score
       secondsSpent: number, // e.g., 4
       site: string, // publisher name, e.g., "wikipedia.org"
       verified: boolean, // there is a verified wallet for this publisher
-      views: number // total page-views
+      views: number, // total page-views,
+      weight: number // float indication of the ration
     }], // one entry for each publisher having a non-zero `score`
     synopsisOptions: {
-      minDuration: number, // e.g., 8000 for 8 seconds
+      minPublisherDuration: number, // e.g., 8000 for 8 seconds
       minPublisherVisits: number // e.g., 0
     }
   },
@@ -621,15 +631,6 @@ WindowStore
     },
     downloadsToolbar: {
       isVisible: boolean // whether or not the downloads toolbar is visible
-    },
-    dragging: {
-      draggingOver: {
-        dragKey: any,
-        dragType: string,
-        draggingOverLeft: boolean,
-        draggingOverRight: boolean
-      },
-      dragType: string // tab, bookmark
     },
     hasFocus: boolean, // true if window has focus
     isClearBrowsingDataPanelVisible: boolean, // true if the Clear Browsing Data panel is visible

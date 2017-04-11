@@ -4,27 +4,27 @@
 
 const React = require('react')
 const Immutable = require('immutable')
-const ImmutableComponent = require('./immutableComponent')
+const ImmutableComponent = require('./../../../../js/components/immutableComponent')
 
-const cx = require('../lib/classSet')
-const Button = require('./button')
-const UrlBar = require('../../app/renderer/components/urlBar')
-const windowActions = require('../actions/windowActions')
-const appActions = require('../actions/appActions')
-const siteTags = require('../constants/siteTags')
-const messages = require('../constants/messages')
-const settings = require('../constants/settings')
+const cx = require('../../../../js/lib/classSet')
+const Button = require('./../../../../js/components/button')
+const UrlBar = require('./urlBar')
+const windowActions = require('../../../../js/actions/windowActions')
+const appActions = require('../../../../js/actions/appActions')
+const siteTags = require('../../../../js/constants/siteTags')
+const messages = require('../../../../js/constants/messages')
+const settings = require('../../../../js/constants/settings')
 const ipc = require('electron').ipcRenderer
-const {isSourceAboutUrl, getBaseUrl} = require('../lib/appUrlUtil')
-const AddEditBookmarkHanger = require('../../app/renderer/components/addEditBookmarkHanger')
-const siteUtil = require('../state/siteUtil')
-const eventUtil = require('../lib/eventUtil')
-const UrlUtil = require('../lib/urlutil')
-const getSetting = require('../settings').getSetting
-const windowStore = require('../stores/windowStore')
-const contextMenus = require('../contextMenus')
-const LongPressButton = require('./longPressButton')
-const PublisherToggle = require('../../app/renderer/components/publisherToggle')
+const {isSourceAboutUrl, getBaseUrl} = require('../../../../js/lib/appUrlUtil')
+const AddEditBookmarkHanger = require('../addEditBookmarkHanger')
+const siteUtil = require('../../../../js/state/siteUtil')
+const eventUtil = require('../../../../js/lib/eventUtil')
+const UrlUtil = require('../../../../js/lib/urlutil')
+const getSetting = require('../../../../js/settings').getSetting
+const windowStore = require('../../../../js/stores/windowStore')
+const contextMenus = require('../../../../js/contextMenus')
+const LongPressButton = require('./../../../../js/components/longPressButton')
+const PublisherToggle = require('../publisherToggle')
 
 class NavigationBar extends ImmutableComponent {
   constructor () {
@@ -32,6 +32,7 @@ class NavigationBar extends ImmutableComponent {
     this.onToggleBookmark = this.onToggleBookmark.bind(this)
     this.onStop = this.onStop.bind(this)
     this.onReload = this.onReload.bind(this)
+    this.onHome = this.onHome.bind(this)
     this.onReloadLongPress = this.onReloadLongPress.bind(this)
     this.onNoScript = this.onNoScript.bind(this)
   }
@@ -70,10 +71,15 @@ class NavigationBar extends ImmutableComponent {
     contextMenus.onReloadContextMenu(target)
   }
 
-  onHome () {
+  onHome (e) {
+    const tabId = this.activeFrame.get('tabId')
     getSetting(settings.HOMEPAGE).split('|')
       .forEach((homepage, i) => {
-        ipc.emit(i === 0 ? messages.SHORTCUT_ACTIVE_FRAME_LOAD_URL : messages.SHORTCUT_NEW_FRAME, {}, homepage)
+        if (i === 0 && !eventUtil.isForSecondaryAction(e)) {
+          appActions.loadURLRequested(tabId, homepage)
+        } else {
+          appActions.createTabRequested({ url: homepage })
+        }
       })
   }
 
@@ -133,10 +139,6 @@ class NavigationBar extends ImmutableComponent {
     return typeof ledgerPaymentsShown === 'boolean'
       ? ledgerPaymentsShown
       : true
-  }
-
-  get isPublisherButtonEnabled () {
-    return UrlUtil.isHttpOrHttps(this.props.location) && this.visiblePublisher
   }
 
   componentDidMount () {
@@ -240,7 +242,7 @@ class NavigationBar extends ImmutableComponent {
         urlbar={this.props.navbar.get('urlbar')}
         onStop={this.onStop}
         menubarVisible={this.props.menubarVisible}
-        noBorderRadius={this.isPublisherButtonEnabled}
+        noBorderRadius={!isSourceAboutUrl(this.props.location)}
         activeTabShowingMessageBox={this.props.activeTabShowingMessageBox}
         />
       {

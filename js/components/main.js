@@ -18,7 +18,7 @@ const contextMenus = require('../contextMenus')
 const getSetting = require('../settings').getSetting
 
 // Components
-const NavigationBar = require('./navigationBar')
+const NavigationBar = require('./../../app/renderer/components/navigation/navigationBar')
 const Frame = require('./frame')
 const TabPages = require('./tabPages')
 const TabsToolbar = require('./tabsToolbar')
@@ -27,7 +27,7 @@ const UpdateBar = require('./updateBar')
 const NotificationBar = require('./notificationBar')
 const DownloadsBar = require('../../app/renderer/components/downloadsBar')
 const Button = require('./button')
-const BrowserActionButton = require('../../app/renderer/components/browserActionButton')
+const BrowserAction = require('../../app/renderer/components/browserAction')
 const SiteInfo = require('./siteInfo')
 const BraveryPanel = require('./braveryPanel')
 const ClearBrowsingDataPanel = require('./clearBrowsingDataPanel')
@@ -68,6 +68,7 @@ const searchProviders = require('../data/searchProviders')
 const defaultBrowserState = require('../../app/common/state/defaultBrowserState')
 
 // Util
+const _ = require('underscore')
 const cx = require('../lib/classSet')
 const eventUtil = require('../lib/eventUtil')
 const {isIntermediateAboutPage, getBaseUrl, isNavigatableAboutPage} = require('../lib/appUrlUtil')
@@ -78,6 +79,7 @@ const {currentWindow, isMaximized, isFocused, isFullScreen} = require('../../app
 const emptyMap = new Immutable.Map()
 const emptyList = new Immutable.List()
 const {makeImmutable} = require('../../app/common/state/immutableUtil')
+const platformUtil = require('../../app/common/lib/platformUtil')
 
 class Main extends ImmutableComponent {
   constructor () {
@@ -112,7 +114,7 @@ class Main extends ImmutableComponent {
   }
   registerWindowLevelShortcuts () {
     // For window level shortcuts that don't work as local shortcuts
-    const isDarwin = process.platform === 'darwin'
+    const isDarwin = platformUtil.isDarwin()
     document.addEventListener('keydown', (e) => {
       switch (e.which) {
         case keyCodes.ESC:
@@ -232,15 +234,31 @@ class Main extends ImmutableComponent {
   }
 
   registerSwipeListener () {
-    // Navigates back/forward on macOS two-finger swipe
-    var trackingFingers = false
-    var swipeGesture = false
-    var isSwipeOnLeftEdge = false
-    var isSwipeOnRightEdge = false
-    var deltaX = 0
-    var deltaY = 0
-    var startTime = 0
-    var time
+    // Navigates back/forward on macOS two- and or three-finger swipe
+    let swipeGesture = false
+    let trackingFingers = false
+    let startTime = 0
+    let isSwipeOnLeftEdge = false
+    let isSwipeOnRightEdge = false
+    let deltaX = 0
+    let deltaY = 0
+    let time
+
+    ipc.on(messages.ENABLE_SWIPE_GESTURE, (e) => {
+      swipeGesture = true
+    })
+
+    ipc.on(messages.DISABLE_SWIPE_GESTURE, (e) => {
+      swipeGesture = false
+    })
+
+    // isSwipeTrackingFromScrollEventsEnabled is only true if "two finger scroll to swipe" is enabled
+    ipc.on('scroll-touch-begin', () => {
+      if (swipeGesture && systemPreferences.isSwipeTrackingFromScrollEventsEnabled()) {
+        trackingFingers = true
+        startTime = (new Date()).getTime()
+      }
+    })
 
     this.mainWindow.addEventListener('wheel', (e) => {
       if (trackingFingers) {
@@ -249,47 +267,9 @@ class Main extends ImmutableComponent {
         time = (new Date()).getTime() - startTime
       }
     }, { passive: true })
-    ipc.on(messages.DEBUG_REACT_PROFILE, (e, args) => {
-      window.perf = require('react-addons-perf')
-      if (!window.perf.isRunning()) {
-        if (!window.isFirstProfiling) {
-          window.isFirstProfiling = true
-          console.info('See this blog post for more information on profiling: http://benchling.engineering/performance-engineering-with-react/')
-        }
-        currentWindow.openDevTools()
-        console.log('starting to profile...')
-        window.perf.start()
-      } else {
-        window.perf.stop()
-        console.log('profiling stopped. Wasted:')
-        window.perf.printWasted()
-      }
-    })
-    ipc.on(messages.OPEN_BRAVERY_PANEL, (e) => {
-      if (!this.braveShieldsDisabled) {
-        this.onBraveMenu()
-      } else {
-        windowActions.newFrame({
-          location: 'about:preferences#shields',
-          singleFrame: true
-        }, true)
-      }
-    })
-    ipc.on(messages.ENABLE_SWIPE_GESTURE, (e) => {
-      swipeGesture = true
-    })
-    ipc.on(messages.DISABLE_SWIPE_GESTURE, (e) => {
-      swipeGesture = false
-    })
-    ipc.on('scroll-touch-begin', function () {
-      if (swipeGesture &&
-        systemPreferences.isSwipeTrackingFromScrollEventsEnabled()) {
-        trackingFingers = true
-        startTime = (new Date()).getTime()
-      }
-    })
-    ipc.on('scroll-touch-end', function () {
-      if (time > 50 && trackingFingers && Math.abs(deltaY) < 50) {
+
+    ipc.on('scroll-touch-end', () => {
+      if (trackingFingers && time > 30 && Math.abs(deltaY) < 80) {
         if (deltaX > 70 && isSwipeOnRightEdge) {
           ipc.emit(messages.SHORTCUT_ACTIVE_FRAME_FORWARD)
         } else if (deltaX < -70 && isSwipeOnLeftEdge) {
@@ -301,20 +281,34 @@ class Main extends ImmutableComponent {
       deltaY = 0
       startTime = 0
     })
-    ipc.on('scroll-touch-edge', function () {
-      if (deltaX > 0 && !isSwipeOnRightEdge) {
-        isSwipeOnRightEdge = true
-        isSwipeOnLeftEdge = false
-        time = 0
-        deltaX = 0
-      } else if (deltaX < 0 && !isSwipeOnLeftEdge) {
-        isSwipeOnLeftEdge = true
-        isSwipeOnRightEdge = false
-        time = 0
-        deltaX = 0
+
+    ipc.on('scroll-touch-edge', () => {
+      if (trackingFingers) {
+        if (!isSwipeOnRightEdge && deltaX > 0) {
+          isSwipeOnRightEdge = true
+          isSwipeOnLeftEdge = false
+          time = 0
+          deltaX = 0
+        } else if (!isSwipeOnLeftEdge && deltaX < 0) {
+          isSwipeOnLeftEdge = true
+          isSwipeOnRightEdge = false
+          time = 0
+          deltaX = 0
+        }
       }
     })
-    ipc.on(messages.LEAVE_FULL_SCREEN, this.exitFullScreen.bind(this))
+
+    const throttledSwipe = _.throttle(direction => {
+      if (swipeGesture) {
+        if (direction === 'left') {
+          ipc.emit(messages.SHORTCUT_ACTIVE_FRAME_BACK)
+        } else if (direction === 'right') {
+          ipc.emit(messages.SHORTCUT_ACTIVE_FRAME_FORWARD)
+        }
+      }
+    }, 500, {leading: true, trailing: false})
+    // the swipe gesture handler will only fire if the three finger swipe setting is on, so the complete off setting and three and two finger together is also taken care of
+    currentWindow.on('swipe', (e, direction) => { throttledSwipe(direction) })
   }
 
   loadSearchProviders () {
@@ -372,25 +366,33 @@ class Main extends ImmutableComponent {
     this.registerWindowLevelShortcuts()
     this.registerCustomTitlebarHandlers()
 
-    ipc.on(messages.SHORTCUT_NEW_FRAME, (event, url, options = {}) => {
-      if (options.singleFrame) {
-        const frameProps = self.props.windowState.get('frames').find((frame) => frame.get('location') === url)
-        if (frameProps) {
-          windowActions.setActiveFrame(frameProps)
-          return
+    ipc.on(messages.LEAVE_FULL_SCREEN, this.exitFullScreen.bind(this))
+
+    ipc.on(messages.DEBUG_REACT_PROFILE, (e, args) => {
+      window.perf = require('react-addons-perf')
+      if (!window.perf.isRunning()) {
+        if (!window.isFirstProfiling) {
+          window.isFirstProfiling = true
+          console.info('See this blog post for more information on profiling: http://benchling.engineering/performance-engineering-with-react/')
         }
+        currentWindow.openDevTools()
+        console.log('starting to profile...')
+        window.perf.start()
+      } else {
+        window.perf.stop()
+        console.log('profiling stopped. Wasted:')
+        window.perf.printWasted()
       }
-      let openInForeground = getSetting(settings.SWITCH_TO_NEW_TABS) === true || options.openInForeground
-      const frameOpts = options.frameOpts || {
-        location: url,
-        isPrivate: !!options.isPrivate,
-        isPartitioned: !!options.isPartitioned,
-        parentFrameKey: options.parentFrameKey
+    })
+
+    ipc.on(messages.OPEN_BRAVERY_PANEL, (e) => {
+      if (!this.braveShieldsDisabled) {
+        this.onBraveMenu()
+      } else {
+        appActions.maybeCreateTabRequested({
+          url: 'about:preferences#shields'
+        })
       }
-      if (options.partitionNumber !== undefined) {
-        frameOpts.partitionNumber = options.partitionNumber
-      }
-      windowActions.newFrame(frameOpts, openInForeground)
     })
 
     ipc.on(messages.NEW_POPUP_WINDOW, function (evt, extensionId, src, props) {
@@ -404,8 +406,8 @@ class Main extends ImmutableComponent {
     })
 
     ipc.on(messages.SHORTCUT_CLOSE_FRAME, (e, i) => typeof i !== 'undefined' && i !== null
-      ? windowActions.closeFrame(self.props.windowState.get('frames'), frameStateUtil.getFrameByKey(self.props.windowState, i))
-      : windowActions.closeFrame(self.props.windowState.get('frames'), frameStateUtil.getActiveFrame(this.props.windowState)))
+      ? windowActions.closeFrame(frameStateUtil.getFrames(self.props.windowState), frameStateUtil.getFrameByKey(self.props.windowState, i))
+      : windowActions.closeFrame(frameStateUtil.getFrames(self.props.windowState), frameStateUtil.getActiveFrame(this.props.windowState)))
     ipc.on(messages.SHORTCUT_UNDO_CLOSED_FRAME, () => windowActions.undoClosedFrame())
 
     ipc.on(messages.SHORTCUT_CLOSE_OTHER_FRAMES, (e, key, isCloseRight, isCloseLeft) => {
@@ -414,10 +416,10 @@ class Main extends ImmutableComponent {
         return
       }
 
-      self.props.windowState.get('frames').forEach((frame, i) => {
+      frameStateUtil.getFrames(self.props.windowState).forEach((frame, i) => {
         if (!frame.get('pinnedLocation') &&
             ((i < currentIndex && isCloseLeft) || (i > currentIndex && isCloseRight))) {
-          windowActions.closeFrame(self.props.windowState.get('frames'), frame)
+          windowActions.closeFrame(frameStateUtil.getFrames(self.props.windowState), frame)
         }
       })
     })
@@ -435,7 +437,7 @@ class Main extends ImmutableComponent {
       windowActions.setActiveFrame(frameStateUtil.getFrameByDisplayIndex(self.props.windowState, i)))
 
     ipc.on(messages.SHORTCUT_SET_ACTIVE_FRAME_TO_LAST, () =>
-      windowActions.setActiveFrame(self.props.windowState.getIn(['frames', self.props.windowState.get('frames').size - 1])))
+      windowActions.setActiveFrame(self.props.windowState.getIn(['frames', frameStateUtil.getFrames(self.props.windowState).size - 1])))
 
     ipc.on(messages.BLOCKED_RESOURCE, (e, blockType, details) => {
       const frameProps = frameStateUtil.getFrameByTabId(self.props.windowState, details.tabId)
@@ -457,11 +459,6 @@ class Main extends ImmutableComponent {
     ipc.on(messages.SHORTCUT_ACTIVE_FRAME_BACK, this.onBack)
     ipc.on(messages.SHORTCUT_ACTIVE_FRAME_FORWARD, this.onForward)
 
-    ipc.on(messages.SHORTCUT_ACTIVE_FRAME_LOAD_URL, (e, url) => {
-      const activeFrame = frameStateUtil.getActiveFrame(self.props.windowState)
-      windowActions.loadUrl(activeFrame, url)
-    })
-
     ipc.on(messages.CERT_ERROR, (e, details) => {
       const frame = frameStateUtil.getFrameByTabId(self.props.windowState, details.tabId)
       if (frame && (frame.get('location') === details.url ||
@@ -470,7 +467,7 @@ class Main extends ImmutableComponent {
           url: details.url,
           error: details.error
         })
-        windowActions.loadUrl(frame, 'about:certerror')
+        appActions.loadURLRequested(frame.get('tabId'), 'about:certerror')
       }
     })
 
@@ -561,14 +558,15 @@ class Main extends ImmutableComponent {
     })
     currentWindow.on('resize', onWindowResize)
     currentWindow.on('move', onWindowMove)
-    currentWindow.on('focus', function () {
+    currentWindow.on('focus', () => {
       windowActions.onFocusChanged(true)
     })
-    currentWindow.on('blur', function () {
+    currentWindow.on('blur', () => {
       self.resetAltMenuProcessing()
       appActions.windowBlurred(currentWindow.id)
       windowActions.onFocusChanged(false)
     })
+
     // Full screen as in F11 (not full screen on a video)
     currentWindow.on('enter-full-screen', function (event) {
       windowActions.setWindowFullScreen(true)
@@ -707,8 +705,8 @@ class Main extends ImmutableComponent {
     return siteSettings.activeSettings(settings, this.props.appState, appConfig).noScript === true
   }
 
-  onCloseFrame (activeFrameProps) {
-    windowActions.closeFrame(this.props.windowState.get('frames'), activeFrameProps)
+  onCloseFrame (activeFrameProps, forceClose = false) {
+    windowActions.closeFrame(frameStateUtil.getFrames(this.props.windowState), activeFrameProps, forceClose)
   }
 
   onDragOver (e) {
@@ -722,8 +720,8 @@ class Main extends ImmutableComponent {
   onDrop (e) {
     if (e.dataTransfer.files.length > 0) {
       Array.from(e.dataTransfer.files).forEach((file) => {
-        const path = encodeURI(file.path)
-        return windowActions.newFrame({location: path, title: file.name})
+        const url = encodeURI(file.path)
+        appActions.createTabRequested({ url })
       })
     } else if (e.dataTransfer.getData('text/plain')) {
       let activeFrame = frameStateUtil.getActiveFrame(this.props.windowState)
@@ -747,7 +745,7 @@ class Main extends ImmutableComponent {
       if (node.classList &&
           (node.classList.contains('popupWindow') ||
             node.classList.contains('contextMenu') ||
-            node.classList.contains('extensionButton') ||
+            node.matches('[class*="extensionButton_"]') ||
             node.classList.contains('menubarItem') ||
             node.classList.contains('bookmarkHanger'))) {
         // Middle click (on context menu) needs to fire the click event.
@@ -849,7 +847,7 @@ class Main extends ImmutableComponent {
       .map((extension) => extensionState.getBrowserActionByTabId(this.props.appState, extension.get('id'), this.activeTabId))
       .filter((browserAction) => browserAction)
     let buttons = extensionBrowserActions.map((browserAction, id) =>
-      <BrowserActionButton
+      <BrowserAction
         browserAction={browserAction}
         extensionId={id}
         tabId={this.activeTabId}
@@ -916,19 +914,16 @@ class Main extends ImmutableComponent {
   }
 
   render () {
-    const comparatorByKeyAsc = (a, b) => a.get('key') > b.get('key')
-      ? 1 : b.get('key') > a.get('key') ? -1 : 0
-
     // Sort frames by key so that the order of the frames do not change which could
     // cause unexpected reloading when a user moves tabs.
     // All frame operations work off of frame keys and not index though so unsorted frames
     // can be passed everywhere other than the Frame elements.
-    const sortedFrames = this.props.windowState.get('frames').sort(comparatorByKeyAsc)
+    const sortedFrames = frameStateUtil.getSortedFrames(this.props.windowState)
     const activeFrame = frameStateUtil.getActiveFrame(this.props.windowState)
     this.frames = {}
     const allSiteSettings = this.allSiteSettings
     const activeSiteSettings = this.activeSiteSettings
-    const nonPinnedFrames = this.props.windowState.get('frames').filter((frame) => !frame.get('pinnedLocation'))
+    const nonPinnedFrames = frameStateUtil.getNonPinnedFrames(this.props.windowState)
     const tabsPerPage = Number(getSetting(settings.TABS_PER_PAGE))
     const showBookmarksToolbar = getSetting(settings.SHOW_BOOKMARKS_TOOLBAR)
     const btbMode = getSetting(settings.BOOKMARKS_TOOLBAR_MODE)
@@ -1087,27 +1082,32 @@ class Main extends ImmutableComponent {
                     ? null
                     : this.extensionButtons
                 }
-                <Button iconClass='braveMenu'
-                  l10nId='braveMenu'
-                  className={cx({
-                    navbutton: true,
-                    braveShieldsDisabled,
-                    braveShieldsDown: !braverySettings.shieldsUp,
-                    leftOfCaptionButton: customTitlebar.captionButtonsVisible && !customTitlebar.menubarVisible
-                  })}
-                  data-test-id='braveShieldButton'
-                  disabled={activeTabShowingMessageBox}
-                  onClick={this.onBraveMenu} />
+                <div className={css(styles.braveMenuContainer)}>
+                  <Button iconClass='braveMenu'
+                    l10nId='braveMenu'
+                    testId='braveShieldButton'
+                    className={cx({
+                      navbutton: true,
+                      braveShieldsDisabled,
+                      braveShieldsDown: !braverySettings.shieldsUp,
+                      leftOfCaptionButton: customTitlebar.captionButtonsVisible && !customTitlebar.menubarVisible
+                    })}
+                    disabled={activeTabShowingMessageBox}
+                    onClick={this.onBraveMenu} />
+                  {
+                    !this.braveShieldsDisabled && totalBlocks
+                    ? <div className={css(
+                        styles.lionBadge,
+                        (customTitlebar.menubarVisible || !platformUtil.isWindows()) && styles.lionBadgeRight
+                      )} data-test-id='lionBadge'>
+                      {totalBlocks}
+                    </div>
+                    : null
+                  }
+                </div>
                 {
                   customTitlebar.captionButtonsVisible && !customTitlebar.menubarVisible
                   ? <span className='buttonSeparator' />
-                  : null
-                }
-                {
-                  !this.braveShieldsDisabled && totalBlocks
-                  ? <div className={css(styles.lionBadge)} data-test-id='lionBadge'>
-                    {totalBlocks}
-                  </div>
                   : null
                 }
               </div>
@@ -1224,7 +1224,7 @@ class Main extends ImmutableComponent {
         {
           showBookmarksToolbar
           ? <BookmarksToolbar
-            draggingOverData={this.props.windowState.getIn(['ui', 'dragging', 'draggingOver', 'dragType']) === dragTypes.BOOKMARK && this.props.windowState.getIn(['ui', 'dragging', 'draggingOver'])}
+            draggingOverData={this.props.appState.getIn(['dragData', 'dragOverData', 'draggingOverType']) === dragTypes.BOOKMARK && this.props.appState.getIn(['dragData', 'dragOverData'])}
             showFavicon={showFavicon}
             showOnlyFavicon={showOnlyFavicon}
             shouldAllowWindowDrag={shouldAllowWindowDrag && !isWindows}
@@ -1253,7 +1253,7 @@ class Main extends ImmutableComponent {
         <TabsToolbar
           paintTabs={getSetting(settings.PAINT_TABS)}
           shouldAllowWindowDrag={shouldAllowWindowDrag}
-          draggingOverData={this.props.windowState.getIn(['ui', 'dragging', 'draggingOver', 'dragType']) === dragTypes.TAB && this.props.windowState.getIn(['ui', 'dragging', 'draggingOver'])}
+          dragData={this.props.appState.getIn(['dragData', 'type']) === dragTypes.TAB && this.props.appState.get('dragData')}
           previewTabs={getSetting(settings.SHOW_TAB_PREVIEWS)}
           tabsPerTabPage={tabsPerPage}
           tabPageIndex={this.props.windowState.getIn(['ui', 'tabs', 'tabPageIndex'])}
@@ -1310,7 +1310,7 @@ class Main extends ImmutableComponent {
                         .includes(siteTags.BOOKMARK)) || emptyMap
                   : null}
                 history={this.bindHistory(frame)}
-                extensions={frame.get('location') === 'about:extensions'
+                extensions={['about:extensions', 'about:preferences'].includes(getBaseUrl(frame.get('location')))
                   ? this.props.appState.get('extensions') || emptyMap
                   : null}
                 preferencesData={frame.get('location') === 'about:preferences#payments'
@@ -1385,21 +1385,31 @@ class Main extends ImmutableComponent {
   }
 }
 
-const styles = StyleSheet.create({
+let styling = {
   lionBadge: {
-    right: '2px',
+    left: 'calc(50% - 1px)',
+    top: '14px',
     position: 'absolute',
-    top: '15px',
     color: '#FFF',
-    borderRadius: '2px',
+    borderRadius: '2.5px',
     padding: '1px 2px',
     pointerEvents: 'none',
-    font: '7pt "Arial Narrow"',
+    font: '6pt "Arial Narrow"',
     textAlign: 'center',
-    border: '.5px solid #FFF',
+    border: '0px solid #FFF',
     background: '#555555',
-    minWidth: '9px'
+    minWidth: '10px',
+    userSelect: 'none'
+  },
+  lionBadgeRight: {
+    left: 'auto',
+    right: '2px'
+  },
+  braveMenuContainer: {
+    position: 'relative'
   }
-})
+}
+
+const styles = StyleSheet.create(styling)
 
 module.exports = Main

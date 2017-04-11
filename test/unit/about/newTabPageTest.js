@@ -11,7 +11,7 @@ const assert = require('assert')
 const Immutable = require('immutable')
 const fakeElectron = require('../lib/fakeElectron')
 const _ = require('underscore')
-let NewTabPage, randomSpy, Clock, Stats, FooterInfo
+let NewTabPage, randomSpy, Clock, Stats, FooterInfo, NewPrivateTab
 require('../braveUnit')
 
 const randomWrapper = {
@@ -35,6 +35,7 @@ describe('NewTab component unit tests', function () {
     Clock = require('../../../js/about/newTabComponents/clock')
     Stats = require('../../../js/about/newTabComponents/stats')
     FooterInfo = require('../../../js/about/newTabComponents/footerInfo')
+    NewPrivateTab = require('../../../js/about/newprivatetab')
   })
 
   after(function () {
@@ -42,7 +43,7 @@ describe('NewTab component unit tests', function () {
     randomSpy.restore()
   })
 
-  let wrapper
+  let wrapper, incognitoWrapper
   const backgroundImage = {
     style: {
       backgroundImage: 'url(testing123.jpg)'
@@ -80,6 +81,9 @@ describe('NewTab component unit tests', function () {
     wrapper = shallow(
       <NewTabPage />
     )
+    incognitoWrapper = shallow(
+      <NewTabPage isIncognito />
+    )
   })
 
   describe('Object properties', function () {
@@ -106,8 +110,8 @@ describe('NewTab component unit tests', function () {
     describe('randomBackgroundImage', function () {
       it('calls random to get a random index', function () {
         randomSpy.reset()
-        const instance = wrapper.instance()
-        instance.randomBackgroundImage
+        const result = wrapper.instance().randomBackgroundImage
+        assert.notEqual(result, undefined)
         assert.equal(randomSpy.calledOnce, true)
       })
 
@@ -147,6 +151,10 @@ describe('NewTab component unit tests', function () {
       it('renders an empty div if `this.state.showEmptyPage` is true', function () {
         wrapper.setState({showEmptyPage: true})
         assert.equal(wrapper.find('div.empty').length, 1)
+      })
+
+      it('renders newPrivateTab page if isIncognito props is true', function () {
+        assert.equal(incognitoWrapper.find(NewPrivateTab).length, 1)
       })
     })
 

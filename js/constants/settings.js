@@ -65,9 +65,9 @@ const settings = {
   SEND_USAGE_STATISTICS: 'advanced.send-usage-statistics',
   ADBLOCK_CUSTOM_RULES: 'adblock.customRules',
   HIDE_EXCLUDED_SITES: 'advanced.hide-excluded-sites',
+  HIDE_LOWER_SITES: 'advanced.hide-lower-sites',
   MINIMUM_VISIT_TIME: 'advanced.minimum-visit-time',
   MINIMUM_VISITS: 'advanced.minimum-visits',
-  MINIMUM_PERCENTAGE: 'advanced.minimum-percentage',
   AUTO_SUGGEST_SITES: 'advanced.auto-suggest-sites',
   // Sync settings
   SYNC_ENABLED: 'sync.enabled',
@@ -75,6 +75,7 @@ const settings = {
   SYNC_TYPE_BOOKMARK: 'sync.type.bookmark',
   SYNC_TYPE_HISTORY: 'sync.type.history',
   SYNC_TYPE_SITE_SETTING: 'sync.type.siteSetting',
+  SYNC_NETWORK_DISABLED: 'sync.network.disabled', // disable network connection to sync server. only used in testing.
   // DEPRECATED settings
   // ########################
   // these constants should not appear outside of this file, ../settings.js, and our tests

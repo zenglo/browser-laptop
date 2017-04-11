@@ -14,6 +14,7 @@ const extensionState = require('./common/state/extensionState')
 const appActions = require('../js/actions/appActions')
 const fs = require('fs')
 const path = require('path')
+const l10n = require('../js/l10n')
 
 // Takes Content Security Policy flags, for example { 'default-src': '*' }
 // Returns a CSP string, for example 'default-src: *;'
@@ -137,7 +138,7 @@ let generateBraveManifest = () => {
     web_accessible_resources: [
       'img/favicon.ico'
     ],
-    incognito: 'spanning',
+    incognito: 'split',
     key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAupOLMy5Fd4dCSOtjcApsAQOnuBdTs+OvBVt/3P93noIrf068x0xXkvxbn+fpigcqfNamiJ5CjGyfx9zAIs7zcHwbxjOw0Uih4SllfgtK+svNTeE0r5atMWE0xR489BvsqNuPSxYJUmW28JqhaSZ4SabYrRx114KcU6ko7hkjyPkjQa3P+chStJjIKYgu5tWBiMJp5QVLelKoM+xkY6S7efvJ8AfajxCViLGyDQPDviGr2D0VvIBob0D1ZmAoTvYOWafcNCaqaejPDybFtuLFX3pZBqfyOCyyzGhucyCmfBXJALKbhjRAqN5glNsUmGhhPK87TuGATQfVuZtenMvXMQIDAQAB'
   }
 
@@ -193,6 +194,7 @@ let generateTorrentManifest = () => {
 
   return {
     name: 'Torrent Viewer',
+    description: l10n.translation('l10nWebtorrentDesc'),
     manifest_version: 2,
     version: '1.0',
     content_security_policy: concatCSP(cspDirectives),
@@ -225,15 +227,18 @@ let generateSyncManifest = () => {
     'default-src': '\'self\'',
     'form-action': '\'none\''
   }
-  cspDirectives['connect-src'] = ['\'self\'',
-    appConfig.sync.serverUrl,
-    appConfig.sync.s3Url].join(' ')
+  const connectSources = ['\'self\'', appConfig.sync.serverUrl, appConfig.sync.s3Url]
+  if (process.env.NODE_ENV === 'development') {
+    connectSources.push(appConfig.sync.testS3Url)
+  }
+
+  cspDirectives['connect-src'] = connectSources.join(' ')
 
   if (process.env.NODE_ENV === 'development') {
     // allow access to webpack dev server resources
     let devServer = 'localhost:' + process.env.npm_package_config_port
     cspDirectives['default-src'] += ' http://' + devServer
-    cspDirectives['connect-src'] += ' http://' + devServer + ' ws://' + devServer + ' ' + appConfig.sync.testS3Url
+    cspDirectives['connect-src'] += ' http://' + devServer + ' ws://' + devServer
   }
 
   return {
@@ -250,7 +255,7 @@ let generateSyncManifest = () => {
       48: 'img/sync-48.png',
       16: 'img/sync-16.png'
     },
-    incognito: 'spanning',
+    incognito: 'not_allowed',
     key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxOmBmOVzntEY6zrcrGSAyrhzL2FJt4FaP12nb899+SrV0LgpOgyqDjytuXT5IlHS74j7ZK2zTOTQy5/E9hqo6ioi1GA3PQU8E71DTaN6kW+XzP+VyZmgPoQHIxPg8jkYk/H4erfP9kMhkVOtu/XqDTqluNhOT0BvVlBpWd4unTQFWdgpCYlPrI6PsYya4FSuIDe6rCKtJABfuKFEr7U9d9MNAOJEnRS8vdBHWCuhWHqsfAaAPyKHQhnwFSFZ4eB+JznBQf7cQtB3EpOoBElyR9QvmbWFrYu87eGL5XxsojKHCrxlQ4X5ANsALa1Mdd2DHDMVqLMIiEEU42DVB0ZDewIDAQAB'
   }
 }
@@ -355,6 +360,7 @@ module.exports.init = () => {
   })
 
   process.on('extension-ready', (installInfo) => {
+    installInfo = insertLocaleStrings(installInfo)
     extensionInfo.setState(installInfo.id, extensionStates.ENABLED)
     extensionInfo.setInstallInfo(installInfo.id, installInfo)
     installInfo.filePath = installInfo.base_path
@@ -362,6 +368,25 @@ module.exports.init = () => {
     extensionActions.extensionInstalled(installInfo.id, installInfo)
     extensionActions.extensionEnabled(installInfo.id)
   })
+
+  let insertLocaleStrings = (installInfo) => {
+    let pattern = /^__MSG_(.*)__$/
+    let properties = ['name', 'description']
+    let defaultLocale = installInfo.manifest.default_locale
+    if (defaultLocale) {
+      let msgPath = path.join(installInfo.base_path, '_locales', defaultLocale, 'messages.json')
+      if (fs.existsSync(msgPath)) {
+        let messages = JSON.parse(fs.readFileSync(msgPath).toString())
+        properties.forEach((property) => {
+          let matches = installInfo[property].match(pattern)
+          if (matches) {
+            installInfo[property] = messages[matches[1]].message
+          }
+        })
+      }
+    }
+    return installInfo
+  }
 
   let loadExtension = (extensionId, extensionPath, manifest = {}, manifestLocation = 'unpacked') => {
     if (!extensionInfo.isLoaded(extensionId) && !extensionInfo.isLoading(extensionId)) {

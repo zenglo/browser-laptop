@@ -30,11 +30,12 @@ const debounce = require('../lib/debounce')
 const path = require('path')
 const autofill = require('../../app/autofill')
 const nativeImage = require('../../app/nativeImage')
-const Filtering = require('../../app/filtering')
+const filtering = require('../../app/filtering')
 const basicAuth = require('../../app/browser/basicAuth')
 const webtorrent = require('../../app/browser/webtorrent')
 const windows = require('../../app/browser/windows')
 const assert = require('assert')
+const profiles = require('../../app/browser/profiles')
 
 // state helpers
 const basicAuthState = require('../../app/common/state/basicAuthState')
@@ -91,7 +92,11 @@ const setWindowDimensions = (browserOpts, defaults, windowState) => {
  * Determine window position (x / y)
  */
 const setWindowPosition = (browserOpts, defaults, windowState) => {
-  if (windowState.ui && windowState.ui.position) {
+  if (browserOpts.positionByMouseCursor) {
+    const screenPos = electron.screen.getCursorScreenPoint()
+    browserOpts.x = screenPos.x
+    browserOpts.y = screenPos.y
+  } else if (windowState.ui && windowState.ui.position) {
     // Position comes from window state
     browserOpts.x = firstDefinedValue(browserOpts.x, windowState.ui.position[0])
     browserOpts.y = firstDefinedValue(browserOpts.y, windowState.ui.position[1])
@@ -190,7 +195,7 @@ const createWindow = (action) => {
   const startupSetting = getSetting(settings.STARTUP_MODE)
 
   setImmediate(() => {
-    let mainWindow = new BrowserWindow(Object.assign(windowProps, browserOpts))
+    let mainWindow = new BrowserWindow(Object.assign(windowProps, browserOpts, {disposition: frameOpts.disposition}))
 
     // initialize frames state
     let frames = []
@@ -228,6 +233,7 @@ const createWindow = (action) => {
       mainWindow.show()
     })
 
+    mainWindow.webContents.setZoomLevel(0.0)
     mainWindow.loadURL(appUrlUtil.getBraveExtIndexHTML())
   })
 }
@@ -333,7 +339,7 @@ function handleChangeSettingAction (settingKey, settingValue) {
       })
       break
     case settings.DEFAULT_ZOOM_LEVEL:
-      Filtering.setDefaultZoomLevel(settingValue)
+      filtering.setDefaultZoomLevel(settingValue)
       break
     default:
   }
@@ -342,11 +348,17 @@ function handleChangeSettingAction (settingKey, settingValue) {
 const applyReducers = (state, action) => [
   require('../../app/browser/reducers/downloadsReducer'),
   require('../../app/browser/reducers/flashReducer'),
+  // tabs, sites and windows reducers need to stay in that order
+  // until we have a better way to manage dependencies
   require('../../app/browser/reducers/tabsReducer'),
+  require('../../app/browser/reducers/sitesReducer'),
+  require('../../app/browser/reducers/windowsReducer'),
   require('../../app/browser/reducers/spellCheckReducer'),
   require('../../app/browser/reducers/clipboardReducer'),
   require('../../app/browser/reducers/passwordManagerReducer'),
-  require('../../app/browser/reducers/tabMessageBoxReducer')
+  require('../../app/browser/reducers/tabMessageBoxReducer'),
+  require('../../app/browser/reducers/dragDropReducer'),
+  require('../../app/browser/reducers/extensionsReducer')
 ].reduce(
     (appState, reducer) => {
       const newState = reducer(appState, action)
@@ -374,11 +386,11 @@ const handleAppAction = (action) => {
     case appConstants.APP_SET_STATE:
       // DO NOT ADD TO THIS LIST
       // See tabsReducer.js for app state init example
-      // TODO(bridiver) - these shold be refactored into reducers
-      appState = Filtering.init(appState, action, appStore)
-      appState = windows.init(appState, action, appStore)
+      // TODO(bridiver) - these should be refactored into reducers
+      appState = filtering.init(appState, action, appStore)
       appState = basicAuth.init(appState, action, appStore)
       appState = webtorrent.init(appState, action, appStore)
+      appState = profiles.init(appState, action, appStore)
       appState = require('../../app/browser/menu').init(appState, action, appStore)
       appState = require('../../app/sync').init(appState, action, appStore)
       ledger.init()
@@ -433,15 +445,23 @@ const handleAppAction = (action) => {
       nativeImage.copyDataURL(action.dataURL, action.html, action.text)
       break
     case appConstants.APP_APPLY_SITE_RECORDS:
+      let nextFolderId = siteUtil.getNextFolderId(appState.get('sites'))
+      // Ensure that all folders are assigned folderIds
+      action.records.forEach((record, i) => {
+        if (record.action !== writeActions.DELETE &&
+          record.bookmark && record.bookmark.isFolder &&
+          record.bookmark.site &&
+          typeof record.bookmark.site.folderId !== 'number') {
+          record.bookmark.site.folderId = nextFolderId
+          action.records.set(i, record)
+          nextFolderId = nextFolderId + 1
+        }
+      })
       action.records.forEach((record) => {
-        const siteData = syncUtil.getSiteDataFromRecord(record, appState)
+        const siteData = syncUtil.getSiteDataFromRecord(record, appState, action.records)
         const tag = siteData.tag
         let siteDetail = siteData.siteDetail
         const sites = appState.get('sites')
-        if (record.action !== writeActions.DELETE &&
-          !siteDetail.get('folderId') && siteUtil.isFolder(siteDetail)) {
-          siteDetail = siteDetail.set('folderId', siteUtil.getNextFolderId(sites))
-        }
         switch (record.action) {
           case writeActions.CREATE:
             appState = appState.set('sites',
@@ -456,48 +476,24 @@ const handleAppAction = (action) => {
               siteUtil.removeSite(sites, siteDetail, tag))
             break
         }
+        appState = syncUtil.updateSiteCache(appState, siteDetail)
       })
       appState = aboutNewTabState.setSites(appState)
       appState = aboutHistoryState.setHistory(appState)
       break
     case appConstants.APP_ADD_SITE:
       const oldSiteSize = appState.get('sites').size
-      const addSiteSyncCallback = action.skipSync ? undefined : syncActions.updateSite
-      if (action.siteDetail.constructor === Immutable.List) {
-        action.siteDetail.forEach((s) => {
-          appState = appState.set('sites', siteUtil.addSite(appState.get('sites'), s, action.tag, undefined, addSiteSyncCallback))
-        })
-      } else {
-        let sites = appState.get('sites')
-        if (!action.siteDetail.get('folderId') && siteUtil.isFolder(action.siteDetail)) {
-          action.siteDetail = action.siteDetail.set('folderId', siteUtil.getNextFolderId(sites))
-        }
-        appState = appState.set('sites', siteUtil.addSite(sites, action.siteDetail, action.tag, action.originalSiteDetail, addSiteSyncCallback))
-      }
-      if (action.destinationDetail) {
-        appState = appState.set('sites', siteUtil.moveSite(appState.get('sites'),
-          action.siteDetail, action.destinationDetail, false, false, true))
-      }
+      appState = aboutNewTabState.setSites(appState, action)
+      appState = aboutHistoryState.setHistory(appState, action)
       // If there was an item added then clear out the old history entries
       if (oldSiteSize !== appState.get('sites').size) {
         filterOutNonRecents()
       }
-      appState = aboutNewTabState.setSites(appState, action)
-      appState = aboutHistoryState.setHistory(appState, action)
       break
     case appConstants.APP_REMOVE_SITE:
-      const removeSiteSyncCallback = action.skipSync ? undefined : syncActions.removeSite
-      appState = appState.set('sites', siteUtil.removeSite(appState.get('sites'), action.siteDetail, action.tag, true, removeSiteSyncCallback))
       appState = aboutNewTabState.setSites(appState, action)
       appState = aboutHistoryState.setHistory(appState, action)
       break
-    case appConstants.APP_MOVE_SITE:
-      {
-        appState = appState.set('sites', siteUtil.moveSite(appState.get('sites'),
-          action.sourceDetail, action.destinationDetail, action.prepend,
-          action.destinationIsParent, false, syncActions.updateSite))
-        break
-      }
     case appConstants.APP_CLEAR_HISTORY:
       appState = appState.set('sites',
         siteUtil.clearHistory(appState.get('sites'), syncActions.updateSite))
@@ -726,15 +722,13 @@ const handleAppAction = (action) => {
       }
       // Site cookies clearing should also clear cache so that evercookies will be properly removed
       if (action.clearDataDetail.get('cachedImagesAndFiles') || action.clearDataDetail.get('allSiteCookies')) {
-        const Filtering = require('../../app/filtering')
-        Filtering.clearCache()
+        filtering.clearCache()
       }
       if (action.clearDataDetail.get('savedPasswords')) {
         handleAppAction({actionType: appConstants.APP_CLEAR_PASSWORDS})
       }
       if (action.clearDataDetail.get('allSiteCookies')) {
-        const Filtering = require('../../app/filtering')
-        Filtering.clearStorageData()
+        filtering.clearStorageData()
       }
       if (action.clearDataDetail.get('autocompleteData')) {
         autofill.clearAutocompleteData()
@@ -875,6 +869,12 @@ const handleAppAction = (action) => {
         appState = appState.setIn(['sync', 'seedQr'], action.seedQr)
       }
       break
+    case appConstants.APP_SET_SYNC_SETUP_ERROR:
+      appState = appState.setIn(['sync', 'setupError'], action.error)
+      break
+    case appConstants.APP_CREATE_SYNC_CACHE:
+      appState = syncUtil.createSiteCache(appState)
+      break
     case appConstants.APP_RESET_SYNC_DATA:
       const sessionStore = require('../../app/sessionStore')
       const syncDefault = Immutable.fromJS(sessionStore.defaultAppState().sync)
@@ -889,6 +889,7 @@ const handleAppAction = (action) => {
           appState = appState.setIn(['sites', key, 'originalSeed'], originalSeed)
         }
       })
+      appState.setIn(['sync', 'objectsById'], {})
       break
     case appConstants.APP_SHOW_DOWNLOAD_DELETE_CONFIRMATION:
       appState = appState.set('deleteConfirmationVisible', true)
@@ -909,6 +910,15 @@ const handleAppAction = (action) => {
           newSiteSettings = newSiteSettings.set(pattern, syncObject)
           appState = appState.set('siteSettings', newSiteSettings)
         }
+      })
+      break
+    case appConstants.APP_CHANGE_LEDGER_PINNED_PERCENTAGES:
+      Object.keys(action.publishers).map((item) => {
+        const pattern = `https?://${item}`
+        let newSiteSettings = siteSettings.mergeSiteSetting(appState.get('siteSettings'), pattern, 'ledgerPinPercentage', action.publishers[item].pinPercentage)
+        const syncObject = siteUtil.setObjectId(newSiteSettings.get(pattern))
+        newSiteSettings = newSiteSettings.set(pattern, syncObject)
+        appState = appState.set('siteSettings', newSiteSettings)
       })
       break
     default:

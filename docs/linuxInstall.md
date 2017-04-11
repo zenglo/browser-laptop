@@ -38,11 +38,23 @@ wget -O brave.deb https://laptop-updates.brave.com/latest/dev/ubuntu64
 sudo dpkg -i ./brave.deb
 ```
 
+If there are dependency errors during `dpkg -i`, the following command will
+install the dependency for you:
+```
+sudo apt-get -f install
+```
+
 ## Mint AMD64:
 
 ```
 wget -O brave.deb https://laptop-updates.brave.com/latest/mint64
 sudo dpkg -i ./brave.deb
+```
+
+If there are dependency errors during `dpkg -i`, the following command will
+install the dependency for you:
+```
+sudo apt-get -f install
 ```
 
 ## Fedora x86_64:
@@ -75,6 +87,7 @@ sudo dnf install ./brave.rpm
 To install brave using zypper:
 
 ```
+sudo rpmkeys --import https://s3-us-west-2.amazonaws.com/brave-rpm-release/keys.asc
 sudo zypper install lsb
 sudo zypper addrepo https://s3-us-west-2.amazonaws.com/brave-rpm-release/x86_64/ brave-rpm-release
 sudo zypper ref

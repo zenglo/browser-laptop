@@ -7,6 +7,7 @@ const Immutable = require('immutable')
 const writeActions = require('../constants/sync/proto').actions
 const siteTags = require('../constants/siteTags')
 const siteUtil = require('./siteUtil')
+const {isDataUrl} = require('../lib/urlutil')
 
 const CATEGORY_MAP = {
   bookmark: {
@@ -38,7 +39,8 @@ const siteSettingDefaults = {
   httpsEverywhere: true,
   fingerprintingProtection: false,
   ledgerPayments: true,
-  ledgerPaymentsShown: true
+  ledgerPaymentsShown: true,
+  ledgerPinPercentage: 0
 }
 
 // Whitelist of valid browser-laptop site fields. In browser-laptop, site
@@ -59,8 +61,9 @@ let folderIdMap = new Immutable.Map()
  * Converts sync records into a form that can be consumed by AppStore.
  * @param {Object} record
  * @param {Immutable.Map} appState
+ * @param {Immutable.List=} records - batch of records possibly not yet applied
  */
-module.exports.getSiteDataFromRecord = (record, appState) => {
+module.exports.getSiteDataFromRecord = (record, appState, records) => {
   const objectId = new Immutable.List(record.objectId)
   const category = CATEGORY_MAP[record.objectData].categoryName
   let existingObjectData
@@ -94,7 +97,7 @@ module.exports.getSiteDataFromRecord = (record, appState) => {
     const parentFolderObjectId = siteProps.parentFolderObjectId
     if (parentFolderObjectId && parentFolderObjectId.length > 0) {
       siteProps.parentFolderId =
-        getFolderIdByObjectId(new Immutable.List(parentFolderObjectId), appState)
+        getFolderIdByObjectId(new Immutable.List(parentFolderObjectId), appState, records)
     }
   }
   const siteDetail = new Immutable.Map(pickFields(siteProps, SITE_FIELDS))
@@ -232,6 +235,7 @@ module.exports.getExistingObject = (categoryName, syncRecord) => {
   const existingObject = module.exports.getObjectById(objectId, categoryName, appState)
   if (!existingObject) { return null }
 
+  const existingObjectKeyPath = existingObject[0]
   const existingObjectData = existingObject[1].toJS()
   let item
   switch (categoryName) {
@@ -240,7 +244,7 @@ module.exports.getExistingObject = (categoryName, syncRecord) => {
       item = module.exports.createSiteData(existingObjectData, appState)
       break
     case 'PREFERENCES':
-      const hostPattern = existingObject[0]
+      const hostPattern = existingObjectKeyPath[existingObjectKeyPath.length - 1]
       item = module.exports.createSiteSettingsData(hostPattern, existingObjectData)
       break
     default:
@@ -255,6 +259,46 @@ module.exports.getExistingObject = (categoryName, syncRecord) => {
     objectData: item.name,
     objectId: item.objectId,
     [item.name]: item.value
+  }
+}
+
+/**
+ * Cache sync objects' key paths by objectIds.
+ * NOTE: Deletes current cache entries.
+ * XXX: Currently only caches sites (history and bookmarks).
+ * @param {Immutable.Map} appState application state
+ * @returns {Immutable.Map} new app state
+ */
+module.exports.createSiteCache = (appState) => {
+  const objectsById = new Immutable.Map().withMutations(objectsById => {
+    appState.get('sites').forEach((site, siteKey) => {
+      const objectId = site.get('objectId')
+      if (!objectId) { return true }
+      const cacheKey = objectId.toJS().join('|')
+      objectsById = objectsById.set(cacheKey, ['sites', siteKey])
+    })
+  })
+  return appState.setIn(['sync', 'objectsById'], objectsById)
+}
+
+/**
+ * Cache a sync object's key path by objectId.
+ * XXX: Currently only caches sites (history and bookmarks).
+ * @param {Immutable.Map} appState application state
+ * @param {Immutable.Map} siteDetail
+ * @returns {Immutable.Map} new app state
+ */
+module.exports.updateSiteCache = (appState, siteDetail) => {
+  if (!siteDetail) { return appState }
+  const siteKey = siteUtil.getSiteKey(siteDetail)
+  const object = appState.getIn(['sites', siteKey])
+  const objectId = (object && object.get('objectId')) || siteDetail.get('objectId')
+  if (!objectId) { return appState }
+  const cacheKey = ['sync', 'objectsById', objectId.toJS().join('|')]
+  if (object) {
+    return appState.setIn(cacheKey, ['sites', siteKey])
+  } else {
+    return appState.deleteIn(cacheKey)
   }
 }
 
@@ -276,17 +320,14 @@ module.exports.getObjectById = (objectId, category, appState) => {
   }
   switch (category) {
     case 'BOOKMARKS':
-      return appState.get('sites').findEntry((site, index) => {
-        const itemObjectId = site.get('objectId')
-        const isBookmark = siteUtil.isFolder(site) || siteUtil.isBookmark(site)
-        return (isBookmark && itemObjectId && itemObjectId.equals(objectId))
-      })
     case 'HISTORY_SITES':
-      return appState.get('sites').findEntry((site, index) => {
-        const itemObjectId = site.get('objectId')
-        const isBookmark = siteUtil.isFolder(site) || siteUtil.isBookmark(site)
-        return (!isBookmark && itemObjectId && itemObjectId.equals(objectId))
-      })
+      const objectKey = appState.getIn(['sync', 'objectsById', objectId.toJS().join('|')])
+      const object = objectKey && appState.getIn(objectKey)
+      if (!object) {
+        return null
+      } else {
+        return [objectKey, object]
+      }
     case 'PREFERENCES':
       return appState.get('siteSettings').findEntry((siteSetting, hostPattern) => {
         const itemObjectId = siteSetting.get('objectId')
@@ -301,16 +342,30 @@ module.exports.getObjectById = (objectId, category, appState) => {
  * Given an bookmark folder objectId, find the folder and return its folderId.
  * @param {Immutable.List} objectId
  * @param {Immutable.Map=} appState
+ * @param {Immutable.List=} records
  * @returns {number|undefined}
  */
-const getFolderIdByObjectId = (objectId, appState) => {
+const getFolderIdByObjectId = (objectId, appState, records) => {
   if (folderIdMap.has(objectId)) {
     return folderIdMap.get(objectId)
   }
+  let folderId
   const entry = module.exports.getObjectById(objectId, 'BOOKMARKS', appState)
-  if (!entry) { return undefined }
-  const folderId = entry[1].get('folderId')
-  folderIdMap = folderIdMap.set(objectId, folderId)
+  if (entry) {
+    folderId = entry[1].get('folderId')
+  } else if (records) {
+    // Look for a folder record with a matching object ID in this record batch
+    const matchingFolder = records.find((record) => {
+      record = Immutable.fromJS(record)
+      return record && objectId.equals(record.get('objectId')) && typeof record.getIn(['bookmark', 'site', 'folderId']) === 'number'
+    })
+    if (matchingFolder) {
+      folderId = matchingFolder.bookmark.site.folderId
+    }
+  }
+  if (folderId) {
+    folderIdMap = folderIdMap.set(objectId, folderId)
+  }
   return folderId
 }
 
@@ -393,7 +448,7 @@ module.exports.createSiteData = (site, appState) => {
     creationTime: 0
   }
   for (let field in site) {
-    if (field in siteData) {
+    if (field in siteData && !isDataUrl(site[field])) {
       siteData[field] = site[field]
     }
   }

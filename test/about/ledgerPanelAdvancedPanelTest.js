@@ -88,7 +88,7 @@ function validateRecoveryFile (recoveryFileContents) {
   console.log(`recovered passphrase: ${passphrase}`)
 
   // validate that paymentId and passphrase are uuids here
-  const UUID_REGEX = /^[0-9a-z]{8}\-[0-9a-z]{4}\-[0-9a-z]{4}\-[0-9a-z]{4}\-[0-9a-z]{12}$/
+  const UUID_REGEX = /^[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$/
   assert.ok(paymentId.match(UUID_REGEX), 'paymentId should be a valid UUID')
   assert.ok(passphrase.match(UUID_REGEX), 'passphrase should be a valid UUID')
 
@@ -217,6 +217,7 @@ describe('Advanced payment panel tests', function () {
   it('shows an error popover if the file is empty', function * () {
     generateAndSaveRecoveryFile(context.recoveryFilePathname)
     yield recoverWalletFromFile(this.app.client)
+    context.cleanSessionStoreAfterEach = true
     yield this.app.client
       .waitForVisible(balanceNotRecovered, ledgerAPIWaitTimeout)
   })

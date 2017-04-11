@@ -7,11 +7,14 @@ const ImmutableComponent = require('../../../js/components/immutableComponent')
 const {StyleSheet, css} = require('aphrodite/no-important')
 const globalStyles = require('./styles/global')
 const {isWindows} = require('../../common/lib/platformUtil')
-const {getTextColorForBackground} = require('../../../js/lib/color')
 const {tabs} = require('../../../js/constants/config')
-const {hasBreakpoint, hasRelativeCloseIcon, hasFixedCloseIcon} = require('../lib/tabUtil')
+const {hasBreakpoint, hasRelativeCloseIcon,
+      hasFixedCloseIcon, hasVisibleSecondaryIcon, getTabIconColor} = require('../lib/tabUtil')
+const {spinKeyframes} = require('./styles/animations')
 
+const loadingIconSvg = require('../../extensions/brave/img/tabs/loading.svg')
 const newSessionSvg = require('../../extensions/brave/img/tabs/new_session.svg')
+const privateSvg = require('../../extensions/brave/img/tabs/private.svg')
 const closeTabSvg = require('../../extensions/brave/img/tabs/close_btn_normal.svg')
 const closeTabHoverSvg = require('../../extensions/brave/img/tabs/close_btn_hover.svg')
 
@@ -29,7 +32,7 @@ class TabIcon extends ImmutableComponent {
       width: globalStyles.spacing.iconSize,
       height: globalStyles.spacing.iconSize,
       alignItems: 'center',
-      justifyContent: this.props.symbolContent ? 'flex-end' : 'center',
+      justifyContent: this.props.symbolContent ? 'flex-end' : 'left',
       fontWeight: this.props.symbolContent ? 'bold' : 'normal',
       color: this.props.symbolContent ? globalStyles.color.black100 : 'inherit'
     }
@@ -56,12 +59,6 @@ class Favicon extends ImmutableComponent {
     return !this.props.isLoading && this.props.tab.get('icon')
   }
 
-  get loadingIcon () {
-    return this.props.isLoading
-      ? globalStyles.appIcons.loading
-      : null
-  }
-
   get defaultIcon () {
     return (!this.props.isLoading && !this.favicon)
       ? globalStyles.appIcons.defaultIcon
@@ -79,18 +76,25 @@ class Favicon extends ImmutableComponent {
 
   render () {
     const iconStyles = StyleSheet.create({
-      favicon: {backgroundImage: `url(${this.favicon})`}
+      favicon: {backgroundImage: `url(${this.favicon})`},
+      loadingIconColor: {
+        // Don't change icon color unless when it should be white
+        filter: getTabIconColor(this.props) === 'white' ? globalStyles.filter.makeWhite : 'none'
+      }
     })
     return !this.shouldHideFavicon
       ? <TabIcon
         data-test-favicon={this.favicon}
-        data-test-id={this.loadingIcon ? 'loading' : 'defaultIcon'}
+        data-test-id={this.props.isLoading ? 'loading' : 'defaultIcon'}
         className={css(
           styles.icon,
           this.favicon && iconStyles.favicon,
           !this.props.tab.get('pinnedLocation') && this.narrowView && styles.faviconNarrowView
         )}
-        symbol={this.loadingIcon || this.defaultIcon} />
+        symbol={
+          (this.props.isLoading && css(styles.loadingIcon, iconStyles.loadingIconColor)) ||
+          this.defaultIcon
+        } />
       : null
   }
 }
@@ -118,10 +122,6 @@ class AudioTabIcon extends ImmutableComponent {
     return this.pageCanPlayAudio && this.props.tab.get('audioMuted')
   }
 
-  get unmutedState () {
-    this.props.tab.get('audioPlaybackActive') && !this.props.tab.get('audioMuted')
-  }
-
   get audioIcon () {
     return !this.mutedState
       ? globalStyles.appIcons.volumeOn
@@ -136,24 +136,21 @@ class AudioTabIcon extends ImmutableComponent {
 }
 
 class PrivateIcon extends ImmutableComponent {
-  get narrowView () {
-    const sizes = ['small', 'extraSmall', 'smallest']
-    return sizes.includes(this.props.tab.get('breakpoint'))
-  }
-
   render () {
-    return this.props.tab.get('isPrivate') && !this.props.tab.get('hoverState') && !this.narrowView
-      ? <TabIcon className={css(styles.icon)} symbol={globalStyles.appIcons.private} />
+    const privateStyles = StyleSheet.create({
+      icon: {
+        WebkitMaskImage: `url(${privateSvg})`,
+        backgroundColor: this.props.isActive ? globalStyles.color.white100 : globalStyles.color.black100
+      }
+    })
+    return this.props.tab.get('isPrivate') && hasVisibleSecondaryIcon(this.props)
+      ? <TabIcon data-test-id='privateIcon'
+        className={css(styles.icon, styles.secondaryIcon, privateStyles.icon)} />
       : null
   }
 }
 
 class NewSessionIcon extends ImmutableComponent {
-  get narrowView () {
-    const sizes = ['small', 'extraSmall', 'smallest']
-    return sizes.includes(this.props.tab.get('breakpoint'))
-  }
-
   get partitionNumber () {
     let partition = this.props.tab.get('partitionNumber')
     // Persistent partitions opened by `target="_blank"` will have
@@ -172,10 +169,7 @@ class NewSessionIcon extends ImmutableComponent {
   }
 
   get iconColor () {
-    const themeColor = this.props.tab.get('themeColor') || this.props.tab.get('computedThemeColor')
-    return this.props.paintTabs && themeColor
-      ? getTextColorForBackground(themeColor)
-      : globalStyles.color.black100
+    return getTabIconColor(this.props)
   }
 
   render () {
@@ -186,7 +180,7 @@ class NewSessionIcon extends ImmutableComponent {
       }
     })
 
-    return this.partitionNumber && !this.props.tab.get('hoverState') && !this.narrowView
+    return this.partitionNumber && hasVisibleSecondaryIcon(this.props)
       ? <TabIcon symbol
         data-test-id='newSessionIcon'
         className={css(styles.icon, styles.newSession, newSession.indicator)}
@@ -212,21 +206,11 @@ class TabTitle extends ImmutableComponent {
       hasFixedCloseIcon(this.props)
   }
 
-  get themeColor () {
-    const themeColor = this.props.tab.get('themeColor') || this.props.tab.get('computedThemeColor')
-    const defaultColor = this.props.tab.get('isPrivate') ? globalStyles.color.white100 : globalStyles.color.black100
-    const activeNonPrivateTab = !this.props.tab.get('isPrivate') && this.props.isActive
-
-    return activeNonPrivateTab && this.props.paintTabs && !!themeColor
-      ? getTextColorForBackground(themeColor)
-      : defaultColor
-  }
-
   render () {
     const titleStyles = StyleSheet.create({
       gradientText: {
         backgroundImage: `-webkit-linear-gradient(left,
-        ${this.themeColor} 90%, ${globalStyles.color.almostInvisible} 100%)`
+        ${getTabIconColor(this.props)} 90%, ${globalStyles.color.almostInvisible} 100%)`
       }
     })
 
@@ -291,9 +275,22 @@ const styles = StyleSheet.create({
     backgroundPosition: 'center center'
   },
 
+  loadingIcon: {
+    backgroundImage: `url(${loadingIconSvg})`,
+    animationName: spinKeyframes,
+    animationTimingFunction: 'linear',
+    animationDuration: '1200ms',
+    animationIterationCount: 'infinite'
+  },
+
   audioIcon: {
     color: globalStyles.color.highlightBlue,
     fontSize: '16px'
+  },
+
+  secondaryIcon: {
+    WebkitMaskRepeat: 'no-repeat',
+    WebkitMaskPosition: 'center'
   },
 
   newSession: {
@@ -327,7 +324,7 @@ const styles = StyleSheet.create({
   tabTitle: {
     display: 'flex',
     flex: '1',
-    WebkitUserSelect: 'none',
+    userSelect: 'none',
     boxSizing: 'border-box',
     fontSize: globalStyles.fontSize.tabTitle,
     overflow: 'hidden',

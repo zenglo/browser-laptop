@@ -1,7 +1,6 @@
-/* global describe, it, before, beforeEach */
+/* global describe, it, beforeEach */
 
 const Brave = require('../lib/brave')
-const messages = require('../../js/constants/messages')
 const {cookieControl, allowAllCookiesOption, blockAllCookiesOption, urlInput, braveMenu, braveMenuDisabled, adsBlockedStat, adsBlockedControl, showAdsOption, blockAdsOption, braveryPanel, httpsEverywhereStat, noScriptStat, noScriptSwitch, fpSwitch, fpStat, noScriptNavButton, customFiltersInput} = require('../lib/selectors')
 const {getTargetAboutUrl} = require('../../js/lib/appUrlUtil')
 
@@ -14,8 +13,8 @@ describe('Bravery Panel', function () {
   }
 
   describe('General', function () {
-    Brave.beforeAll(this)
-    before(function * () {
+    Brave.beforeEach(this)
+    beforeEach(function * () {
       yield setup(this.app.client)
     })
     it('shows disabled brave button for about:newpage', function * () {
@@ -39,16 +38,17 @@ describe('Bravery Panel', function () {
         .waitForTextValue('[data-test-id="lionBadge"]', '2')
     })
   })
-  describe('Stats', function () {
+  describe('Tracking Protection stats', function () {
     Brave.beforeEach(this)
     beforeEach(function * () {
       yield setup(this.app.client)
+      yield this.app.client
+        .waitForDataFile('trackingProtection')
     })
     it('detects blocked elements in private tab', function * () {
       const url = Brave.server.url('tracking.html')
       yield this.app.client
-        .waitForDataFile('trackingProtection')
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
+        .newTab({ url, isPrivate: true })
         .waitForTabCount(2)
         .waitForUrl(url)
         .windowByUrl(Brave.browserWindowUrl)
@@ -58,17 +58,10 @@ describe('Bravery Panel', function () {
         .waitForVisible(showAdsOption)
         .click(showAdsOption)
         .waitForTextValue(adsBlockedStat, '0')
-        .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url)
-        .waitForTabCount(3)
-        .waitForUrl(url)
-        .openBraveMenu(braveMenu, braveryPanel)
-        .waitForTextValue(adsBlockedStat, '2')
     })
     it('detects blocked elements', function * () {
       const url = Brave.server.url('tracking.html')
       yield this.app.client
-        .waitForDataFile('trackingProtection')
         .tabByIndex(0)
         .loadUrl(url)
         .openBraveMenu(braveMenu, braveryPanel)
@@ -77,23 +70,22 @@ describe('Bravery Panel', function () {
         .waitForVisible(showAdsOption)
         .click(showAdsOption)
         .waitForTextValue(adsBlockedStat, '0')
-        .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
-        .waitForTabCount(2)
-        .waitForUrl(url)
-        .openBraveMenu(braveMenu, braveryPanel)
-        .waitForTextValue(adsBlockedStat, '0')
-        .click(adsBlockedControl)
-        .waitForVisible(blockAdsOption)
-        .click(blockAdsOption)
-        .waitForTextValue(adsBlockedStat, '2')
     })
+  })
+
+  describe('Adblock stats', function () {
+    Brave.beforeEach(this)
+    beforeEach(function * () {
+      yield setup(this.app.client)
+      yield this.app.client
+        .waitForDataFile('adblock')
+    })
+
     it('downloads and detects regional adblock resources in private tab', function * () {
       const url = Brave.server.url('adblock.html')
       const aboutAdblockURL = getTargetAboutUrl('about:adblock')
       const adblockUUID = '48796273-E783-431E-B864-44D3DCEA66DC'
       yield this.app.client
-        .waitForDataFile('adblock')
         .tabByIndex(0)
         .loadUrl(aboutAdblockURL)
         .url(aboutAdblockURL)
@@ -105,7 +97,7 @@ describe('Bravery Panel', function () {
             return val.value[adblockUUID] && val.value[adblockUUID].etag && val.value[adblockUUID].etag.length > 0
           })
         })
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
+        .newTab({ url, isPrivate: true })
         .waitForTabCount(2)
         .waitForUrl(url)
         .windowByUrl(Brave.browserWindowUrl)
@@ -115,19 +107,12 @@ describe('Bravery Panel', function () {
         .waitForVisible(showAdsOption)
         .click(showAdsOption)
         .waitForTextValue(adsBlockedStat, '0')
-        .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url)
-        .waitForTabCount(3)
-        .waitForUrl(url)
-        .openBraveMenu(braveMenu, braveryPanel)
-        .waitForTextValue(adsBlockedStat, '2')
     })
     it('downloads and detects regional adblock resources', function * () {
       const url = Brave.server.url('adblock.html')
       const aboutAdblockURL = getTargetAboutUrl('about:adblock')
       const adblockUUID = '48796273-E783-431E-B864-44D3DCEA66DC'
       yield this.app.client
-        .waitForDataFile('adblock')
         .tabByIndex(0)
         .loadUrl(aboutAdblockURL)
         .url(aboutAdblockURL)
@@ -148,22 +133,11 @@ describe('Bravery Panel', function () {
         .waitForVisible(showAdsOption)
         .click(showAdsOption)
         .waitForTextValue(adsBlockedStat, '0')
-        .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
-        .waitForTabCount(2)
-        .waitForUrl(url)
-        .openBraveMenu(braveMenu, braveryPanel)
-        .waitForTextValue(adsBlockedStat, '0')
-        .click(adsBlockedControl)
-        .waitForVisible(blockAdsOption)
-        .click(blockAdsOption)
-        .waitForTextValue(adsBlockedStat, '2')
     })
     it('detects adblock resources in private tab', function * () {
       const url = Brave.server.url('adblock.html')
       yield this.app.client
-        .waitForDataFile('adblock')
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
+        .newTab({ url, isPrivate: true })
         .waitForTabCount(2)
         .waitForUrl(url)
         .windowByUrl(Brave.browserWindowUrl)
@@ -173,18 +147,12 @@ describe('Bravery Panel', function () {
         .waitForVisible(showAdsOption)
         .click(showAdsOption)
         .waitForTextValue(adsBlockedStat, '0')
-        .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url)
-        .waitForTabCount(3)
-        .waitForUrl(url)
-        .openBraveMenu(braveMenu, braveryPanel)
-        .waitForTextValue(adsBlockedStat, '1')
     })
     it('detects adblock resources', function * () {
       const url = Brave.server.url('adblock.html')
       yield this.app.client
         .waitForDataFile('adblock')
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url)
+        .newTab({ url })
         .waitForTabCount(2)
         .waitForUrl(url)
         .windowByUrl(Brave.browserWindowUrl)
@@ -194,34 +162,24 @@ describe('Bravery Panel', function () {
         .waitForVisible(showAdsOption)
         .click(showAdsOption)
         .waitForTextValue(adsBlockedStat, '0')
-        .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
-        .waitForTabCount(3)
-        .waitForUrl(url)
-        .openBraveMenu(braveMenu, braveryPanel)
-        .waitForTextValue(adsBlockedStat, '0')
-        .click(adsBlockedControl)
-        .waitForVisible(blockAdsOption)
-        .click(blockAdsOption)
-        .waitForTextValue(adsBlockedStat, '1')
     })
     it('blocks custom adblock resources in private tab', function * () {
       const customFilterRulesUUID = 'CE61F035-9F0A-4999-9A5A-D4E46AF676F7'
       const url = Brave.server.url('adblock.html')
       const aboutAdblockURL = getTargetAboutUrl('about:adblock')
       yield this.app.client
-        .waitForDataFile('adblock')
         .tabByIndex(0)
         .loadUrl(aboutAdblockURL)
         .waitForVisible(customFiltersInput)
-        .setValue(customFiltersInput, 'testblock.brave.com')
+        .click(customFiltersInput)
+        .typeText(customFiltersInput, 'testblock.brave.com')
         .windowByUrl(Brave.browserWindowUrl)
         .waitUntil(function () {
           return this.getAppState().then((val) => {
             return val.value[customFilterRulesUUID] && val.value[customFilterRulesUUID].etag && val.value[customFilterRulesUUID].etag.length > 0
           })
         })
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
+        .newTab({ url, isPrivate: true })
         .waitForTabCount(2)
         .waitForUrl(url)
         .windowByUrl(Brave.browserWindowUrl)
@@ -231,31 +189,25 @@ describe('Bravery Panel', function () {
         .waitForVisible(showAdsOption)
         .click(showAdsOption)
         .waitForTextValue(adsBlockedStat, '0')
-        .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url)
-        .waitForTabCount(3)
-        .waitForUrl(url)
-        .openBraveMenu(braveMenu, braveryPanel)
-        .waitForTextValue(adsBlockedStat, '2')
     })
     it('blocks custom adblock resources', function * () {
       const customFilterRulesUUID = 'CE61F035-9F0A-4999-9A5A-D4E46AF676F7'
       const url = Brave.server.url('adblock.html')
       const aboutAdblockURL = getTargetAboutUrl('about:adblock')
       yield this.app.client
-        .waitForDataFile('adblock')
         .tabByIndex(0)
         .loadUrl(aboutAdblockURL)
         .url(aboutAdblockURL)
         .waitForVisible(customFiltersInput)
-        .setValue(customFiltersInput, 'testblock.brave.com')
+        .click(customFiltersInput)
+        .typeText(customFiltersInput, 'testblock.brave.com')
         .windowByUrl(Brave.browserWindowUrl)
         .waitUntil(function () {
           return this.getAppState().then((val) => {
             return val.value[customFilterRulesUUID] && val.value[customFilterRulesUUID].etag && val.value[customFilterRulesUUID].etag.length > 0
           })
         })
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url)
+        .newTab({ url })
         .waitForTabCount(2)
         .waitForUrl(url)
         .windowByUrl(Brave.browserWindowUrl)
@@ -265,16 +217,6 @@ describe('Bravery Panel', function () {
         .waitForVisible(showAdsOption)
         .click(showAdsOption)
         .waitForTextValue(adsBlockedStat, '0')
-        .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
-        .waitForTabCount(3)
-        .waitForUrl(url)
-        .openBraveMenu(braveMenu, braveryPanel)
-        .waitForTextValue(adsBlockedStat, '0')
-        .click(adsBlockedControl)
-        .waitForVisible(blockAdsOption)
-        .click(blockAdsOption)
-        .waitForTextValue(adsBlockedStat, '2')
     })
     it('blocks websocket tracking', function * () {
       const url = Brave.server.url('websockets.html')
@@ -299,7 +241,7 @@ describe('Bravery Panel', function () {
     it('detects blocked elements in iframe in private tab', function * () {
       const url = Brave.server.url('slashdot.html')
       yield this.app.client
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
+        .newTab({ url, isPrivate: true })
         .waitForTabCount(2)
         .windowByUrl(Brave.browserWindowUrl)
         .openBraveMenu(braveMenu, braveryPanel)
@@ -312,7 +254,7 @@ describe('Bravery Panel', function () {
         .click(showAdsOption)
         .waitForTextValue(adsBlockedStat, '0')
         .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url)
+        .newTab({ url })
         .waitForTabCount(3)
         .openBraveMenu(braveMenu, braveryPanel)
         .waitUntil(function () {
@@ -335,7 +277,7 @@ describe('Bravery Panel', function () {
         .click(showAdsOption)
         .waitForTextValue(adsBlockedStat, '0')
         .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
+        .newTab({ url, isPrivate: true })
         .waitForTabCount(1)
         .waitForUrl(url)
         .openBraveMenu(braveMenu, braveryPanel)
@@ -352,7 +294,7 @@ describe('Bravery Panel', function () {
       const url = Brave.server.url('httpsEverywhere.html')
       yield this.app.client
         .waitForDataFile('httpsEverywhere')
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
+        .newTab({ url, isPrivate: true })
         .waitForTabCount(2)
         .waitForUrl(url)
         .windowByUrl(Brave.browserWindowUrl)
@@ -379,7 +321,7 @@ describe('Bravery Panel', function () {
         .waitForTextValue(noScriptStat, '2')
         .keys(Brave.keys.ESCAPE)
         .waitForVisible(noScriptNavButton)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url)
+        .newTab({ url })
         .waitForTabCount(2)
         .waitForUrl(url)
         .waitUntil(function () {
@@ -402,7 +344,7 @@ describe('Bravery Panel', function () {
         .waitForTextValue(noScriptStat, '2')
         .keys(Brave.keys.ESCAPE)
         .waitForVisible(noScriptNavButton)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
+        .newTab({ url, isPrivate: true })
         .waitForTabCount(2)
         .waitForUrl(url)
         .waitUntil(function () {
@@ -455,11 +397,7 @@ describe('Bravery Panel', function () {
         .click(blockAllCookiesOption)
         .tabByIndex(0)
         .loadUrl(url)
-        .waitUntil(function () {
-          return this.getText('body').then((text) => {
-            return text === expectedBlocked
-          })
-        })
+        .waitForTextValue('body', expectedBlocked)
     })
     it('allows cookies', function * () {
       const url = Brave.server.url('cookies.html')
@@ -492,11 +430,10 @@ describe('Bravery Panel', function () {
             .then((stat) => stat === '2' || stat === '3')
         })
         .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
+        .newTab({ url, isPrivate: true })
         .waitForTabCount(2)
         .waitForUrl(url)
         .openBraveMenu(braveMenu, braveryPanel)
-        .click(fpSwitch)
         .waitUntil(function () {
           // TOOD: This should be 3, but see:
           // https://github.com/brave/browser-laptop/issues/3227
@@ -506,7 +443,7 @@ describe('Bravery Panel', function () {
         .click(fpSwitch)
         .waitForTextValue(fpStat, '0')
         .keys(Brave.keys.ESCAPE)
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url)
+        .newTab({ url })
         .waitForTabCount(3)
         .waitForUrl(url)
         .openBraveMenu(braveMenu, braveryPanel)
@@ -518,10 +455,35 @@ describe('Bravery Panel', function () {
             .then((stat) => stat === '2' || stat === '3')
         })
     })
+    it('block device enumeration', function * () {
+      const url = Brave.server.url('enumerate_devices.html')
+      yield this.app.client
+        .tabByIndex(0)
+        .loadUrl(url)
+        .waitUntil(function () {
+          return this.getText('body')
+            .then((body) => {
+              return body.includes('default')
+            })
+        })
+        .openBraveMenu(braveMenu, braveryPanel)
+        .click(fpSwitch)
+        .waitUntil(function () {
+          return this.getText(fpStat)
+            .then((stat) => stat === '1')
+        })
+        .tabByUrl(url)
+        .waitUntil(function () {
+          return this.getText('body')
+            .then((body) => {
+              return body === ''
+            })
+        })
+    })
     it('allows fingerprinting when setting is off in private tab', function * () {
       const url = Brave.server.url('fingerprinting.html')
       yield this.app.client
-        .ipcSend(messages.SHORTCUT_NEW_FRAME, url, { isPrivate: true })
+        .newTab({ url, isPrivate: true })
         .waitForTabCount(2)
         .waitForUrl(url)
         .waitForTextValue('body', 'fingerprinting test')

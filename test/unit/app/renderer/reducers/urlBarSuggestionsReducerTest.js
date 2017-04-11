@@ -111,13 +111,6 @@ describe('urlBarSuggestionsReducer unit tests', function () {
     })
   })
 
-  describe('WINDOW_SET_URL', function () {
-    it('turns off suggestions', function () {
-      const newState = urlBarSuggestionsReducer(windowState, {actionType: windowConstants.WINDOW_SET_URL, shown: true})
-      assert.equal(newState.getIn(['frames', 1, 'navbar', 'urlbar', 'suggestions', 'searchResults']).size, 0)
-    })
-  })
-
   describe('WINDOW_PREVIOUS_URL_BAR_SUGGESTION_SELECTED', function () {
     it('turns off suggestions', function () {
       const newState = urlBarSuggestionsReducer(windowState, {actionType: windowConstants.WINDOW_PREVIOUS_URL_BAR_SUGGESTION_SELECTED})
@@ -157,14 +150,6 @@ describe('urlBarSuggestionsReducer unit tests', function () {
       const newState = urlBarSuggestionsReducer(windowState, {actionType: windowConstants.WINDOW_SET_URL_BAR_SUGGESTIONS, suggestionList, selectedIndex: null})
       assert.equal(newState.getIn(['frames', 1, 'navbar', 'urlbar', 'suggestions', 'suggestionList']), suggestionList)
       assert.equal(newState.getIn(['frames', 1, 'navbar', 'urlbar', 'suggestions', 'selectedIndex']), null)
-    })
-  })
-
-  describe('WINDOW_SET_URL_BAR_SUGGESTION_SEARCH_RESULTS', function () {
-    it('search results can be updated', function () {
-      const searchResults = Immutable.fromJS(['0.577215'])
-      const newState = urlBarSuggestionsReducer(windowState, {actionType: windowConstants.WINDOW_SET_URL_BAR_SUGGESTION_SEARCH_RESULTS, searchResults})
-      assert.deepEqual(newState.getIn(['frames', 1, 'navbar', 'urlbar', 'suggestions', 'searchResults']).toJS(), searchResults.toJS())
     })
   })
 

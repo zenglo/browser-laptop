@@ -29,6 +29,7 @@ describe('PaymentsTab component', function () {
     mockery.registerMock('../../../extensions/brave/img/preferences/browser_prefs_general.svg', 'browser_prefs_general.svg')
     mockery.registerMock('../../../extensions/brave/img/preferences/browser_prefs_search.svg', 'browser_prefs_search.svg')
     mockery.registerMock('../../../extensions/brave/img/preferences/browser_prefs_tabs.svg', 'browser_prefs_tabs.svg')
+    mockery.registerMock('../../../extensions/brave/img/preferences/browser_prefs_extensions.svg')
     mockery.registerMock('../../../extensions/brave/img/preferences/browser_prefs_plugins.svg', 'browser_prefs_plugins.svg')
     mockery.registerMock('../../../extensions/brave/img/preferences/browser_prefs_security.svg', 'browser_prefs_security.svg')
     mockery.registerMock('../../../extensions/brave/img/preferences/browser_prefs_shields.svg', 'browser_prefs_shields.svg')
@@ -39,6 +40,8 @@ describe('PaymentsTab component', function () {
     mockery.registerMock('../../../extensions/brave/img/ledger/icon_history.svg')
     mockery.registerMock('../../../../extensions/brave/img/ledger/verified_green_icon.svg')
     mockery.registerMock('../../../../extensions/brave/img/ledger/verified_white_icon.svg')
+    mockery.registerMock('../../../../extensions/brave/img/ledger/icon_remove.svg')
+    mockery.registerMock('../../../../extensions/brave/img/ledger/icon_pin.svg')
     mockery.registerMock('../../../../extensions/brave/img/private_internet_access.png')
     mockery.registerMock('../../../../extensions/brave/img/private_internet_access_2x.png')
     mockery.registerMock('../../../../extensions/brave/img/bitgo.png')
@@ -172,17 +175,6 @@ describe('PaymentsTab component', function () {
       )
       const inst = wrapper.instance()
       assert.equal(inst.fundsAmount, null)
-    })
-
-    it('handles missing balance', function () {
-      fakeSettings.mockReturnValue = true
-      const wrapper = mount(
-        <PaymentsTab
-          showOverlay={function () {}}
-          hideOverlay={function () {}}
-          ledgerData={Immutable.Map({created: true, balance: null})} />
-      )
-      assert.equal(wrapper.find('[data-test-id="accountBalanceLoading"]').length, 1)
     })
 
     it('handles expected balance', function () {

@@ -4,7 +4,6 @@ const Brave = require('../lib/brave')
 const {urlInput, bookmarksToolbar, navigator, navigatorNotBookmarked, doneButton} = require('../lib/selectors')
 const settings = require('../../js/constants/settings')
 const siteTags = require('../../js/constants/siteTags')
-const assert = require('assert')
 
 function * setup (client) {
   yield client
@@ -64,9 +63,9 @@ describe('bookmarksToolbar', function () {
           parentFolderId: 0,
           tags: [siteTags.BOOKMARK_FOLDER]
         }, siteTags.BOOKMARK_FOLDER)
-        .waitForVisible('.bookmarkToolbarButton[title=demo1]')
+        .waitForVisible('[data-test-id="bookmarkToolbarButton"][title=demo1]')
         .click(bookmarksToolbar)
-        .click('.bookmarkToolbarButton[title=demo1]')
+        .click('[data-test-id="bookmarkToolbarButton"][title=demo1]')
         .waitForVisible('.contextMenuItemText[data-l10n-id=emptyFolderItem]')
     })
 
@@ -114,11 +113,9 @@ describe('bookmarksToolbar', function () {
         .waitForEnabled(doneButton)
         .selectByValue('#bookmarkParentFolder select', folderId2)
         .click(doneButton)
-        .click('.bookmarkToolbarButton[title=demo1]')
-        .moveToObject('.bookmarkToolbarButton[title=demo2]')
-        .getText('.contextMenuItemText').then((val) => {
-          assert(val === 'Page 1')
-        })
+        .click('[data-test-id="bookmarkToolbarButton"][title=demo1]')
+        .moveToObject('[data-test-id="bookmarkToolbarButton"][title=demo2]')
+        .waitForTextValue('.contextMenuItemText', 'Page 1')
     })
 
     it('hides context menu when mousing over regular bookmark', function * () {
@@ -151,10 +148,10 @@ describe('bookmarksToolbar', function () {
         .waitForBookmarkDetail(this.page1Url, 'test1')
         .waitForEnabled(doneButton)
         .click(doneButton)
-        .waitForVisible('.bookmarkToolbarButton[title^=test1]')
-        .click('.bookmarkToolbarButton[title=demo1]')
+        .waitForVisible('[data-test-id="bookmarkToolbarButton"][title^=test1]')
+        .click('[data-test-id="bookmarkToolbarButton"][title=demo1]')
         .waitForVisible('.contextMenuItemText[data-l10n-id=emptyFolderItem]')
-        .moveToObject('.bookmarkToolbarButton[title^=test1]')
+        .moveToObject('[data-test-id="bookmarkToolbarButton"][title^=test1]')
         .waitForElementCount('.contextMenuItemText', 0)
     })
   })
@@ -185,7 +182,7 @@ describe('bookmarksToolbar', function () {
         .click(doneButton)
 
       yield this.app.client.waitUntil(() =>
-        this.app.client.getCssProperty('.bookmarkFavicon', 'background-image').then((backgroundImage) =>
+        this.app.client.getCssProperty('[data-test-id="bookmarkFavicon"]', 'background-image').then((backgroundImage) =>
           backgroundImage.value === `url("${Brave.server.url('img/test.ico')}")`
       ))
     })
@@ -210,8 +207,8 @@ describe('bookmarksToolbar', function () {
         .click(doneButton)
 
       yield this.app.client.waitUntil(() =>
-        this.app.client.getAttribute('.bookmarkFavicon', 'class').then((className) =>
-          className === 'bookmarkFavicon bookmarkFile fa fa-file-o'
+        this.app.client.getAttribute('[data-test-id="bookmarkFavicon"]', 'class').then((className) =>
+          className.includes('bookmarkFile fa fa-file-o')
       ))
     })
   })

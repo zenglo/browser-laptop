@@ -66,7 +66,7 @@ const appStore = require('../js/stores/appStore')
 const eventStore = require('../js/stores/eventStore')
 const rulesolver = require('./extensions/brave/content/scripts/pageInformation')
 const ledgerUtil = require('./common/lib/ledgerUtil')
-const Tabs = require('./browser/tabs')
+const tabs = require('./browser/tabs')
 const {fileUrl} = require('../js/lib/appUrlUtil')
 
 // "only-when-needed" loading...
@@ -93,8 +93,10 @@ var client
 const clientOptions = {
   debugP: process.env.LEDGER_DEBUG,
   loggingP: process.env.LEDGER_LOGGING,
+  rulesTestP: process.env.LEDGER_RULES_TESTING,
   verboseP: process.env.LEDGER_VERBOSE,
-  server: process.env.LEDGER_SERVER_URL
+  server: process.env.LEDGER_SERVER_URL,
+  createWorker: app.createWorker
 }
 
 var doneTimer
@@ -175,7 +177,7 @@ const doAction = (action) => {
         case settings.MINIMUM_VISIT_TIME:
           if (action.value <= 0) break
 
-          synopsis.options.minDuration = action.value
+          synopsis.options.minPublisherDuration = action.value
           updatePublisherInfo()
           break
 
@@ -183,10 +185,6 @@ const doAction = (action) => {
           if (action.value <= 0) break
 
           synopsis.options.minPublisherVisits = action.value
-          updatePublisherInfo()
-          break
-
-        case settings.MINIMUM_PERCENTAGE:
           updatePublisherInfo()
           break
 
@@ -213,6 +211,10 @@ const doAction = (action) => {
         if (publisherInfo._internal.verboseP) console.log('\nupdating ' + publisher + ' stickyP=' + action.value)
         updatePublisherInfo()
         verifiedP(publisher)
+      } else if (action.key === 'ledgerPinPercentage') {
+        if (!synopsis.publishers[publisher]) break
+        synopsis.publishers[publisher].pinPercentage = action.value
+        updatePublisherInfo(publisher)
       }
       break
 
@@ -319,7 +321,7 @@ var backupKeys = (appState, action) => {
     if (err) {
       console.log(err)
     } else {
-      Tabs.create({url: fileUrl(filePath)}, (webContents) => {
+      tabs.create({url: fileUrl(filePath)}, (webContents) => {
         if (action.backupAction === 'print') {
           webContents.print({silent: false, printBackground: false})
         } else {
@@ -394,7 +396,7 @@ var recoverKeys = (appState, action) => {
     secondRecoveryKey = action.secondRecoveryKey
   }
 
-  const UUID_REGEX = /^[0-9a-z]{8}\-[0-9a-z]{4}\-[0-9a-z]{4}\-[0-9a-z]{4}\-[0-9a-z]{12}$/
+  const UUID_REGEX = /^[0-9a-z]{8}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{4}-[0-9a-z]{12}$/
   if (typeof firstRecoveryKey !== 'string' || !firstRecoveryKey.match(UUID_REGEX) || typeof secondRecoveryKey !== 'string' || !secondRecoveryKey.match(UUID_REGEX)) {
     // calling logError sets the error object
     logError(true, 'recoverKeys')
@@ -495,7 +497,7 @@ if (ipc) {
   })
 
   ipc.on(messages.NOTIFICATION_RESPONSE, (e, message, buttonIndex) => {
-    const win = electron.BrowserWindow.getFocusedWindow()
+    const win = electron.BrowserWindow.getActiveWindow()
     if (message === addFundsMessage) {
       appActions.hideNotification(message)
       // See showNotificationAddFunds() for buttons.
@@ -503,12 +505,12 @@ if (ipc) {
       // in showNotificationAddFunds() when triggering this notification.
       if (buttonIndex === 0) {
         appActions.changeSetting(settings.PAYMENTS_NOTIFICATIONS, false)
-      } else if (buttonIndex === 2) {
+      } else if (buttonIndex === 2 && win) {
         // Add funds: Open payments panel
-        if (win) {
-          win.webContents.send(messages.SHORTCUT_NEW_FRAME,
-            'about:preferences#payments', { singleFrame: true })
-        }
+        appActions.maybeCreateTabRequested({
+          url: 'about:preferences#payments',
+          windowId: win.id
+        })
       }
     } else if (message === reconciliationMessage) {
       appActions.hideNotification(message)
@@ -516,8 +518,10 @@ if (ipc) {
       if (buttonIndex === 0) {
         appActions.changeSetting(settings.PAYMENTS_NOTIFICATIONS, false)
       } else if (buttonIndex === 2 && win) {
-        win.webContents.send(messages.SHORTCUT_NEW_FRAME,
-          'about:preferences#payments', { singleFrame: true })
+        appActions.maybeCreateTabRequested({
+          url: 'about:preferences#payments',
+          windowId: win.id
+        })
       }
     } else if (message === notificationPaymentDoneMessage) {
       appActions.hideNotification(message)
@@ -527,8 +531,10 @@ if (ipc) {
     } else if (message === notificationTryPaymentsMessage) {
       appActions.hideNotification(message)
       if (buttonIndex === 1 && win) {
-        win.webContents.send(messages.SHORTCUT_NEW_FRAME,
-          'about:preferences#payments', { singleFrame: true })
+        appActions.maybeCreateTabRequested({
+          url: 'about:preferences#payments',
+          windowId: win.id
+        })
       }
       appActions.changeSetting(settings.PAYMENTS_NOTIFICATION_TRY_PAYMENTS_DISMISSED, true)
     }
@@ -569,14 +575,20 @@ eventStore.addChangeListener(() => {
 
 // NB: in theory we have already seen every element in info except for (perhaps) the last one...
   underscore.rest(info, info.length - 1).forEach((page) => {
-    var entry, faviconURL, pattern, publisher
-    var location = page.url
+    let pattern, publisher
+    let location = page.url
 
     if (location.match(/^about/)) return
 
     location = urlFormat(underscore.pick(urlParse(location), [ 'protocol', 'host', 'hostname', 'port', 'pathname' ]))
     publisher = locations[location] && locations[location].publisher
-    if (publisher) return updateLocation(location, publisher)
+    if (publisher) {
+      if (synopsis.publishers[publisher] &&
+        (typeof synopsis.publishers[publisher].faviconURL === 'undefined' || synopsis.publishers[publisher].faviconURL === null)) {
+        getFavIcon(synopsis.publishers[publisher], page, location)
+      }
+      return updateLocation(location, publisher)
+    }
 
     if (!page.publisher) {
       try {
@@ -606,73 +618,7 @@ eventStore.addChangeListener(() => {
       })
     }
     updateLocation(location, publisher)
-    entry = synopsis.publishers[publisher]
-    if ((page.protocol) && (!entry.protocol)) entry.protocol = page.protocol
-
-    if ((typeof entry.faviconURL === 'undefined') && ((page.faviconURL) || (entry.protocol))) {
-      var fetch = (url, redirects) => {
-        if (typeof redirects === 'undefined') redirects = 0
-
-        request.request({ url: url, responseType: 'blob' }, (err, response, blob) => {
-          var matchP, prefix, tail
-
-          if ((response) && (publisherInfo._internal.verboseP)) {
-            console.log('[ response for ' + url + ' ]')
-            console.log('>>> HTTP/' + response.httpVersionMajor + '.' + response.httpVersionMinor + ' ' + response.statusCode +
-                       ' ' + (response.statusMessage || ''))
-            underscore.keys(response.headers).forEach((header) => { console.log('>>> ' + header + ': ' + response.headers[header]) })
-            console.log('>>>')
-            console.log('>>> ' + (blob || '').substr(0, 80))
-          }
-
-          if (publisherInfo._internal.debugP) {
-            console.log('\nresponse: ' + url +
-                        ' errP=' + (!!err) + ' blob=' + (blob || '').substr(0, 80) + '\nresponse=' +
-                        JSON.stringify(response, null, 2))
-          }
-
-          if (err) return console.log('response error: ' + err.toString() + '\n' + err.stack)
-
-          if ((response.statusCode === 301) && (response.headers.location)) {
-            if (redirects < 3) fetch(response.headers.location, redirects++)
-            return
-          }
-
-          if ((response.statusCode !== 200) || (response.headers['content-length'] === '0')) return
-
-          tail = blob.indexOf(';base64,')
-          if (blob.indexOf('data:image/') !== 0) {
-            // NB: for some reason, some sites return an image, but with the wrong content-type...
-            if (tail <= 0) return
-
-            prefix = new Buffer(blob.substr(tail + 8, signatureMax), 'base64')
-            underscore.keys(fileTypes).forEach((fileType) => {
-              if (matchP) return
-              if ((prefix.length >= fileTypes[fileType].length) ||
-                  (fileTypes[fileType].compare(prefix, 0, fileTypes[fileType].length) !== 0)) return
-
-              blob = 'data:image/' + fileType + blob.substr(tail)
-              matchP = true
-            })
-            if (!matchP) return
-          } else if ((tail > 0) && (tail + 8 >= blob.length)) return
-
-          entry.faviconURL = blob
-          updatePublisherInfo()
-          if (publisherInfo._internal.debugP) {
-            console.log('\n' + publisher + ' synopsis=' +
-                        JSON.stringify(underscore.extend(underscore.omit(entry, [ 'faviconURL', 'window' ]),
-                                                         { faviconURL: entry.faviconURL && '... ' }), null, 2))
-          }
-        })
-      }
-
-      faviconURL = page.faviconURL || entry.protocol + '//' + urlParse(location).host + '/favicon.ico'
-      entry.faviconURL = null
-
-      if (publisherInfo._internal.debugP) console.log('\nrequest: ' + faviconURL)
-      fetch(faviconURL)
-    }
+    getFavIcon(synopsis.publishers[publisher], page, location)
   })
 
   view = underscore.last(view) || {}
@@ -800,8 +746,9 @@ var enable = (paymentsEnabled) => {
         value = 8 * 1000
         appActions.changeSetting(settings.MINIMUM_VISIT_TIME, value)
       }
+
       // for earlier versions of the code...
-      if ((value > 0) && (value < 1000)) synopsis.options.minDuration = value * 1000
+      if ((value > 0) && (value < 1000)) synopsis.options.minPublisherDuration = value * 1000
 
       value = getSetting(settings.MINIMUM_VISITS)
       if (!value) {
@@ -811,13 +758,9 @@ var enable = (paymentsEnabled) => {
       if (value > 0) synopsis.options.minPublisherVisits = value
 
       if (process.env.NODE_ENV === 'test') {
-        synopsis.options.minDuration = 0
         synopsis.options.minPublisherDuration = 0
         synopsis.options.minPublisherVisits = 0
       } else {
-        if (process.env.LEDGER_PUBLISHER_VISIT_DURATION) {
-          synopsis.options.minDuration = ledgerClient.prototype.numbion(process.env.LEDGER_PUBLISHER_VISIT_DURATION)
-        }
         if (process.env.LEDGER_PUBLISHER_MIN_DURATION) {
           synopsis.options.minPublisherDuration = ledgerClient.prototype.numbion(process.env.LEDGER_PUBLISHER_MIN_DURATION)
         }
@@ -940,7 +883,90 @@ var publisherInfo = {
   }
 }
 
-var updatePublisherInfo = () => {
+const getFavIcon = (entry, page, location) => {
+  if ((page.protocol) && (!entry.protocol)) {
+    entry.protocol = page.protocol
+  }
+
+  if ((typeof entry.faviconURL === 'undefined') && ((page.faviconURL) || (entry.protocol))) {
+    let faviconURL = page.faviconURL || entry.protocol + '//' + urlParse(location).host + '/favicon.ico'
+    if (publisherInfo._internal.debugP) {
+      console.log('\nrequest: ' + faviconURL)
+    }
+
+    entry.faviconURL = null
+    fetchFavIcon(entry, faviconURL)
+  }
+}
+
+const fetchFavIcon = (entry, url, redirects) => {
+  if (typeof redirects === 'undefined') redirects = 0
+
+  request.request({ url: url, responseType: 'blob' }, (err, response, blob) => {
+    let matchP, prefix, tail
+
+    if ((response) && (publisherInfo._internal.verboseP)) {
+      console.log('[ response for ' + url + ' ]')
+      console.log('>>> HTTP/' + response.httpVersionMajor + '.' + response.httpVersionMinor + ' ' + response.statusCode +
+        ' ' + (response.statusMessage || ''))
+      underscore.keys(response.headers).forEach((header) => { console.log('>>> ' + header + ': ' + response.headers[header]) })
+      console.log('>>>')
+      console.log('>>> ' + (blob || '').substr(0, 80))
+    }
+
+    if (publisherInfo._internal.debugP) {
+      console.log('\nresponse: ' + url +
+        ' errP=' + (!!err) + ' blob=' + (blob || '').substr(0, 80) + '\nresponse=' +
+        JSON.stringify(response, null, 2))
+    }
+
+    if (err) {
+      console.log('response error: ' + err.toString() + '\n' + err.stack)
+      return null
+    }
+
+    if ((response.statusCode === 301) && (response.headers.location)) {
+      if (redirects < 3) fetchFavIcon(entry, response.headers.location, redirects++)
+      return null
+    }
+
+    if ((response.statusCode !== 200) || (response.headers['content-length'] === '0')) {
+      return null
+    }
+
+    tail = blob.indexOf(';base64,')
+    if (blob.indexOf('data:image/') !== 0) {
+      // NB: for some reason, some sites return an image, but with the wrong content-type...
+      if (tail <= 0) {
+        return null
+      }
+
+      prefix = new Buffer(blob.substr(tail + 8, signatureMax), 'base64')
+      underscore.keys(fileTypes).forEach((fileType) => {
+        if (matchP) return
+        if ((prefix.length >= fileTypes[fileType].length) ||
+          (fileTypes[fileType].compare(prefix, 0, fileTypes[fileType].length) !== 0)) return
+
+        blob = 'data:image/' + fileType + blob.substr(tail)
+        matchP = true
+      })
+      if (!matchP) {
+        return
+      }
+    } else if ((tail > 0) && (tail + 8 >= blob.length)) return
+
+    if (publisherInfo._internal.debugP) {
+      console.log('\n' + entry.site + ' synopsis=' +
+        JSON.stringify(underscore.extend(underscore.omit(entry, [ 'faviconURL', 'window' ]),
+          { faviconURL: entry.faviconURL && '... ' }), null, 2))
+    }
+
+    entry.faviconURL = blob
+    updatePublisherInfo()
+  })
+}
+
+var updatePublisherInfo = (changedPublisher) => {
   var data = {}
   var then = underscore.now() - msecs.week
 
@@ -961,7 +987,7 @@ var updatePublisherInfo = () => {
   atomicWriter(pathName(synopsisPath), synopsis, () => {})
   if (!publisherInfo._internal.enabled) return
 
-  publisherInfo.synopsis = synopsisNormalizer()
+  publisherInfo.synopsis = synopsisNormalizer(changedPublisher)
   publisherInfo.synopsisOptions = synopsis.options
 
   if (publisherInfo._internal.debugP) {
@@ -1000,19 +1026,28 @@ var stickyP = (publisher) => {
     delete synopsis.publishers[publisher].options.stickyP
   }
 
-  return (result || false)
+  return (result === undefined || result)
 }
 
 var eligibleP = (publisher) => {
+  if (!synopsis.options.minPublisherDuration && process.env.NODE_ENV !== 'test') {
+    synopsis.options.minPublisherDuration = getSetting(settings.MINIMUM_VISIT_TIME)
+  }
+
   return ((synopsis.publishers[publisher].scores[synopsis.options.scorekeeper] > 0) &&
           (synopsis.publishers[publisher].duration >= synopsis.options.minPublisherDuration) &&
           (synopsis.publishers[publisher].visits >= synopsis.options.minPublisherVisits))
 }
 
 var visibleP = (publisher) => {
-  return (((stickyP(publisher)) ||
-           ((synopsis.publishers[publisher].options.exclude !== true) && (eligibleP(publisher)))) &&
-          (!blockedP(publisher)))
+  return (
+      eligibleP(publisher) &&
+      (
+        synopsis.publishers[publisher].options.exclude !== true ||
+        stickyP(publisher)
+      )
+    ) &&
+    !blockedP(publisher)
 }
 
 var contributeP = (publisher) => {
@@ -1021,93 +1056,165 @@ var contributeP = (publisher) => {
           (!blockedP(publisher)))
 }
 
-var synopsisNormalizer = () => {
-  var i, duration, minP, n, pct, publisher, results, total
-  var data = []
-  var scorekeeper = synopsis.options.scorekeeper
+var synopsisNormalizer = (changedPublisher) => {
+  // courtesy of https://stackoverflow.com/questions/13483430/how-to-make-rounded-percentages-add-up-to-100#13485888
+  const roundToTarget = (l, target, property) => {
+    let off = target - underscore.reduce(l, (acc, x) => { return acc + Math.round(x[property]) }, 0)
 
-  results = []
-  underscore.keys(synopsis.publishers).forEach((publisher) => {
-    if (!visibleP(publisher)) return
+    return underscore.sortBy(l, (x) => Math.round(x[property]) - x[property])
+      .map((x, i) => {
+        x[property] = Math.round(x[property]) + (off > i) - (i >= (l.length + off))
+        return x
+      })
+  }
 
-    results.push(underscore.extend({ publisher: publisher }, underscore.omit(synopsis.publishers[publisher], 'window')))
-  }, synopsis)
-  results = underscore.sortBy(results, (entry) => { return -entry.scores[scorekeeper] })
-  n = results.length
+  const normalizePinned = (dataPinned, total, target, setOne) => dataPinned.map((publisher) => {
+    let newPer
+    let floatNumber
 
-  total = 0
-  for (i = 0; i < n; i++) { total += results[i].scores[scorekeeper] }
-  if (total === 0) return data
+    if (setOne) {
+      newPer = 1
+      floatNumber = 1
+    } else {
+      floatNumber = (publisher.pinPercentage / total) * target
+      newPer = Math.floor(floatNumber)
+      if (newPer < 1) {
+        newPer = 1
+      }
+    }
 
-  pct = []
-  for (i = 0; i < n; i++) {
-    publisher = synopsis.publishers[results[i].publisher]
-    duration = results[i].duration
+    publisher.weight = floatNumber
+    publisher.pinPercentage = newPer
+    return publisher
+  })
 
-    data[i] = {
-      rank: i + 1,
-      verified: results[i].options.verified || false,
-      site: results[i].publisher,
-      views: results[i].visits,
+  const getPublisherData = (result) => {
+    let duration = result.duration
+
+    let data = {
+      verified: result.options.verified || false,
+      site: result.publisher,
+      views: result.visits,
       duration: duration,
       daysSpent: 0,
       hoursSpent: 0,
       minutesSpent: 0,
       secondsSpent: 0,
-      faviconURL: publisher.faviconURL,
-      score: results[i].scores[scorekeeper]
+      faviconURL: result.faviconURL,
+      score: result.scores[scorekeeper],
+      pinPercentage: result.pinPercentage,
+      weight: result.pinPercentage
     }
     // HACK: Protocol is sometimes blank here, so default to http:// so we can
     // still generate publisherURL.
-    data[i].publisherURL = (results[i].protocol || 'http:') + '//' + results[i].publisher
-
-    pct[i] = Math.round((results[i].scores[scorekeeper] * 100) / total)
+    data.publisherURL = (result.protocol || 'http:') + '//' + result.publisher
 
     if (duration >= msecs.day) {
-      data[i].daysSpent = Math.max(Math.round(duration / msecs.day), 1)
+      data.daysSpent = Math.max(Math.round(duration / msecs.day), 1)
     } else if (duration >= msecs.hour) {
-      data[i].hoursSpent = Math.max(Math.floor(duration / msecs.hour), 1)
-      data[i].minutesSpent = Math.round((duration % msecs.hour) / msecs.minute)
+      data.hoursSpent = Math.max(Math.floor(duration / msecs.hour), 1)
+      data.minutesSpent = Math.round((duration % msecs.hour) / msecs.minute)
     } else if (duration >= msecs.minute) {
-      data[i].minutesSpent = Math.max(Math.round(duration / msecs.minute), 1)
-      data[i].secondsSpent = Math.round((duration % msecs.minute) / msecs.second)
+      data.minutesSpent = Math.max(Math.round(duration / msecs.minute), 1)
+      data.secondsSpent = Math.round((duration % msecs.minute) / msecs.second)
     } else {
-      data[i].secondsSpent = Math.max(Math.round(duration / msecs.second), 1)
-    }
-  }
-
-  // courtesy of https://stackoverflow.com/questions/13483430/how-to-make-rounded-percentages-add-up-to-100#13485888
-  var foo = (l, target) => {
-    var off = target - underscore.reduce(l, (acc, x) => { return acc + Math.round(x) }, 0)
-
-    return underscore.chain(l)
-                     .sortBy((x) => { return Math.round(x) - x })
-                     .map((x, i) => { return Math.round(x) + (off > i) - (i >= (l.length + off)) })
-                     .value()
-  }
-
-  minP = getSetting(settings.MINIMUM_PERCENTAGE)
-  pct = foo(pct, 100)
-  total = 0
-  for (i = 0; i < n; i++) {
-    if (pct[i] < 0) pct[i] = 0
-    if ((minP) && (pct[i] < 1)) {
-      data = data.slice(0, i)
-      break
+      data.secondsSpent = Math.max(Math.round(duration / msecs.second), 1)
     }
 
-    data[i].percentage = pct[i]
-    total += pct[i]
+    return data
   }
 
-  for (i = data.length - 1; (total > 100) && (i >= 0); i--) {
-    if (data[i].percentage < 2) continue
+  let results
+  let dataPinned = []
+  let dataUnPinned = []
+  let dataExcluded = []
+  let pinnedTotal = 0
+  let unPinnedTotal = 0
+  const scorekeeper = synopsis.options.scorekeeper
 
-    data[i].percentage--
-    total--
+  results = []
+  underscore.keys(synopsis.publishers).forEach((publisher) => {
+    if (!visibleP(publisher)) return
+
+    results.push(underscore.extend({publisher: publisher}, underscore.omit(synopsis.publishers[publisher], 'window')))
+  }, synopsis)
+  results = underscore.sortBy(results, (entry) => { return -entry.scores[scorekeeper] })
+
+  // move publisher to the correct array and get totals
+  results.forEach((result) => {
+    if (result.pinPercentage && result.pinPercentage > 0) {
+      // pinned
+      pinnedTotal += result.pinPercentage
+      dataPinned.push(getPublisherData(result))
+    } else if (stickyP(result.publisher)) {
+      // unpinned
+      unPinnedTotal += result.scores[scorekeeper]
+      dataUnPinned.push(result)
+    } else {
+      // excluded
+      let publisher = getPublisherData(result)
+      publisher.percentage = 0
+      publisher.weight = 0
+      dataExcluded.push(publisher)
+    }
+  })
+
+  // round if over 100% of pinned publishers
+  if (pinnedTotal > 100) {
+    const changedObject = dataPinned.filter(publisher => publisher.site === changedPublisher)[0]
+    const setOne = changedObject.pinPercentage > (100 - dataPinned.length - 1)
+
+    if (setOne) {
+      changedObject.pinPercentage = 100 - dataPinned.length + 1
+      changedObject.weight = changedObject.pinPercentage
+    }
+
+    const pinnedRestTotal = pinnedTotal - changedObject.pinPercentage
+    dataPinned = dataPinned.filter(publisher => publisher.site !== changedPublisher)
+    dataPinned = normalizePinned(dataPinned, pinnedRestTotal, (100 - changedObject.pinPercentage), setOne)
+    dataPinned = roundToTarget(dataPinned, (100 - changedObject.pinPercentage), 'pinPercentage')
+
+    dataUnPinned = dataUnPinned.map((result) => {
+      let publisher = getPublisherData(result)
+      publisher.percentage = 0
+      publisher.weight = 0
+      return publisher
+    })
+
+    dataPinned.push(changedObject)
+
+    // sync app store
+    appActions.changeLedgerPinnedPercentages(dataPinned)
+  } else if (dataUnPinned.length === 0 && pinnedTotal < 100) {
+    // when you don't have any unpinned sites and pinned total is less then 100 %
+    dataPinned = normalizePinned(dataPinned, pinnedTotal, 100, false)
+    dataPinned = roundToTarget(dataPinned, 100, 'pinPercentage')
+
+    // sync app store
+    appActions.changeLedgerPinnedPercentages(dataPinned)
+  } else {
+    // unpinned publishers
+    dataUnPinned = dataUnPinned.map((result) => {
+      let publisher = getPublisherData(result)
+      const floatNumber = (publisher.score / unPinnedTotal) * (100 - pinnedTotal)
+      publisher.percentage = Math.round(floatNumber)
+      publisher.weight = floatNumber
+      return publisher
+    })
+
+    // normalize unpinned values
+    dataUnPinned = roundToTarget(dataUnPinned, (100 - pinnedTotal), 'percentage')
   }
 
-  return data
+  const newData = dataPinned.concat(dataUnPinned, dataExcluded)
+
+  // sync synopsis
+  newData.forEach((item) => {
+    synopsis.publishers[item.site].weight = item.weight
+    synopsis.publishers[item.site].pinPercentage = item.pinPercentage
+  })
+
+  return newData
 }
 
 /*
@@ -1231,6 +1338,8 @@ var excludeP = (publisher, callback) => {
 
     if (callback) callback(err, result)
   }
+
+  if (!v2RulesetDB) return setTimeout(() => { excludeP(publisher, callback) }, 5 * msecs.second)
 
   inspectP(v2RulesetDB, v2RulesetPath, publisher, 'exclude', 'domain:' + publisher, (err, result) => {
     var props
@@ -1375,7 +1484,7 @@ var ledgerInfo = {
   passphrase: undefined,
 
   // advanced ledger settings
-  minDuration: undefined,
+  minPublisherDuration: undefined,
   minPublisherVisits: undefined,
 
   hasBitcoinHandler: false,
@@ -1495,16 +1604,26 @@ var callback = (err, result, delayTime) => {
 
     entries = []
     results.forEach((entry) => {
-      entries.push({ type: 'put',
-        key: entry.facet + ':' + entry.publisher,
-        value: JSON.stringify(underscore.omit(entry, [ 'facet', 'publisher' ]))
-      })
+      var key = entry.facet + ':' + entry.publisher
+
+      if (entry.exclude !== false) {
+        entries.push({ type: 'put', key: key, value: JSON.stringify(underscore.omit(entry, [ 'facet', 'publisher' ])) })
+      } else {
+        entries.push({ type: 'del', key: key })
+      }
     })
 
     v2RulesetDB.batch(entries, (err) => {
       if (err) return console.log(v2RulesetPath + ' error: ' + JSON.stringify(err, null, 2))
 
-      underscore.keys(synopsis.publishers).forEach((publisher) => { excludeP(publisher) })
+      if (entries.length === 0) return
+
+      underscore.keys(synopsis.publishers).forEach((publisher) => {
+// be safe...
+        if (synopsis.publishers[publisher]) delete synopsis.publishers[publisher].options.exclude
+
+        excludeP(publisher)
+      })
     })
   }
   if (result.publishersV2) {
@@ -1649,9 +1768,16 @@ var run = (delayTime) => {
 
   if ((typeof delayTime === 'undefined') || (!client)) return
 
-  var active, state
+  var active, state, weights, winners
   var ballots = client.ballots()
-  var winners = ((synopsis) && (ballots > 0) && (synopsis.winners(ballots))) || []
+  var data = (synopsis) && (ballots > 0) && synopsisNormalizer()
+
+  if (data) {
+    weights = []
+    data.forEach((datum) => { weights.push({ publisher: datum.site, weight: datum.weight / 100.0 }) })
+    winners = synopsis.winners(ballots, weights)
+  }
+  if (!winners) winners = []
 
   try {
     winners.forEach((winner) => {
@@ -1700,6 +1826,31 @@ var run = (delayTime) => {
 /*
  * ledger client utilities
  */
+
+/* code that may never be needed...
+
+var rulesV2Reset = (callback) => {
+  if (clientOptions.verboseP) console.log('\n\nreset rulesets')
+  if (!v2RulesetDB) return
+
+  if (client) {
+    delete client.state.rulesV2Stamp
+    client.state.updatesStamp = underscore.now()
+  }
+  v2RulesetDB.close((err) => {
+    if (err) console.log(v2RulesetPath + ' close error: ' + err.toString())
+
+    v2RulesetDB = null
+    require('leveldown').destroy(pathName(v2RulesetPath), (err) => {
+      if (err) console.log(v2RulesetPath + ' destroy error: ' + err.toString())
+
+      v2RulesetDB = levelup(pathName(v2RulesetPath))
+      callback()
+    })
+  })
+}
+
+*/
 
 var getStateInfo = (state) => {
   var ballots, i, transaction
