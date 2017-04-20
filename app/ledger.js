@@ -21,8 +21,9 @@
 
 /* internal terminology:
 
-   blockedP: the user has selected 'Never include this site' (site setting 'ledgerPaymentsShown')
-    stickyP: the user has toggled ON the button to the right of the address bar (site setting 'ledgerPayments')
+synopsis.publishers[publisher].options.
+   blockedP: the user has selected 'Never include this site' (formerly !site setting 'ledgerPaymentsShown')
+    stickyP: the user has toggled ON the button to the right of the address bar (formerly site setting 'ledgerPayments')
    excluded: the publisher appears on the list of sites to exclude from automatic inclusion (if auto-include is enabled)
 
   eligibleP: the current scorekeeper says the publisher has received enough durable visits
@@ -105,6 +106,8 @@ const v2RulesetPath = 'ledger-rulesV2.leveldb'
 
 var v2PublishersDB
 const v2PublishersPath = 'ledger-publishersV2.leveldb'
+
+var legacyBusyP
 
 /*
  * publisher globals
@@ -193,41 +196,40 @@ const doAction = (action) => {
       break
 
     case appConstants.APP_CHANGE_SITE_SETTING:
+      if (legacyBusyP) break
+
       i = action.hostPattern.indexOf('://')
       if (i === -1) break
 
       publisher = action.hostPattern.substr(i + 3)
+      synopsis.initPublisher(publisher)
       if (action.key === 'ledgerPaymentsShown') {
-        if (action.value === false) {
-          if (publisherInfo._internal.verboseP) console.log('\npurging ' + publisher)
-          delete synopsis.publishers[publisher]
-          delete publishers[publisher]
-          updatePublisherInfo()
-        }
+        synopsis.publishers[publisher].options.blockedP = !action.value
       } else if (action.key === 'ledgerPayments') {
-        if (!synopsis.publishers[publisher]) break
-
-        if (publisherInfo._internal.verboseP) console.log('\nupdating ' + publisher + ' stickyP=' + action.value)
-        updatePublisherInfo()
+        synopsis.publishers[publisher].options.stickyP = action.value
         verifiedP(publisher)
       } else if (action.key === 'ledgerPinPercentage') {
-        if (!synopsis.publishers[publisher]) break
         synopsis.publishers[publisher].pinPercentage = action.value
-        updatePublisherInfo(publisher)
       }
+      updatePublisherInfo()
       break
 
     case appConstants.APP_REMOVE_SITE_SETTING:
+      if (legacyBusyP) break
+
       i = action.hostPattern.indexOf('://')
       if (i === -1) break
 
       publisher = action.hostPattern.substr(i + 3)
-      if (action.key === 'ledgerPayments') {
-        if (!synopsis.publishers[publisher]) break
-
-        if (publisherInfo._internal.verboseP) console.log('\nupdating ' + publisher + ' stickyP=' + true)
-        updatePublisherInfo()
+      synopsis.initPublisher(publisher)
+      if (action.key === 'ledgerPaymentsShown') {
+        delete synopsis.publishers[publisher].options.blockedP
+      } else if (action.key === 'ledgerPayments') {
+        delete synopsis.publishers[publisher].options.stickyP
+      } else if (action.key === 'ledgerPinPercentage') {
+        delete synopsis.publishers[publisher].pinPercentage
       }
+      updatePublisherInfo()
       break
 
     case appConstants.APP_NETWORK_CONNECTED:
@@ -574,7 +576,7 @@ eventStore.addChangeListener(() => {
 
 // NB: in theory we have already seen every element in info except for (perhaps) the last one...
   underscore.rest(info, info.length - 1).forEach((page) => {
-    let pattern, publisher
+    let publisher
     let location = page.url
 
     if (location.match(/^about/)) return
@@ -602,7 +604,6 @@ eventStore.addChangeListener(() => {
     if (!page.publisher) return
 
     publisher = page.publisher
-    pattern = `https?://${publisher}`
     initP = !synopsis.publishers[publisher]
     synopsis.initPublisher(publisher)
     if (initP) {
@@ -612,7 +613,7 @@ eventStore.addChangeListener(() => {
         } else {
           exclude = !exclude
         }
-        appActions.changeSiteSetting(pattern, 'ledgerPayments', exclude)
+        synopsis.publishers[publisher].options.stickyP = exclude
         updatePublisherInfo()
       })
     }
@@ -737,7 +738,7 @@ var enable = (paymentsEnabled) => {
   synopsis = new (ledgerPublisher.Synopsis)()
   fs.readFile(pathName(synopsisPath), (err, data) => {
     var initSynopsis = () => {
-      var value
+      var pairs, value
 
       // cf., the `Synopsis` constructor, https://github.com/brave/ledger-publisher/blob/master/index.js#L167
       value = getSetting(settings.MINIMUM_VISIT_TIME)
@@ -767,6 +768,40 @@ var enable = (paymentsEnabled) => {
           synopsis.options.minPublisherVisits = ledgerClient.prototype.numbion(process.env.LEDGER_PUBLISHER_MIN_VISITS)
         }
       }
+
+// njczdovc: the goal here is to traverse the site settings and move the ledger settings to the synopsis structure
+// you will still need to look to see where ledgerPaymentsShown/ledgerPayments/ledgerPinPercentage is still used in the browser
+      pairs = []
+      appStore.getState().get('siteSettings').filter((value, key) => {
+        var i, publisher
+        var update = (optkey, f) => {
+          var optval = value.get(optkey)
+
+          if (typeof optval === 'undefined') return
+
+          if (publisherInfo._internal.verboseP) {
+            console.log('found siteSetting ' +
+                        JSON.stringify({ publisher: publisher, hostPattern: key, key: value, value: optval }))
+          }
+          synopsis.initPublisher(publisher)
+          f(optval)
+          pairs.push({ publisher: publisher, hostPattern: key, key: optkey })
+        }
+
+        i = key.indexOf('://')
+        if (i === -1) return
+
+        publisher = key.substr(i + 3)
+        update('ledgerPayments', (optval) => { synopsis.publishers[publisher].options.stickyP = optval })
+        update('ledgerPaymentsShown', (option) => { synopsis.publishers[publisher].options.blockedP = !option })
+        update('ledgerPinPercentage', (optval) => { synopsis.publishers[publisher].pinPercentage = optval })
+      })
+      legacyBusyP = true
+      pairs.forEach((pair) => {
+        if (publisherInfo._internal.verboseP) console.log('removing siteSetting: ' + JSON.stringify(pair))
+        appActions.removeSiteSetting(pair.hostPattern, pair.key)
+      })
+      legacyBusyP = false
 
       underscore.keys(synopsis.publishers).forEach((publisher) => {
         excludeP(publisher)
@@ -1002,27 +1037,20 @@ var updatePublisherInfo = (changedPublisher) => {
 }
 
 var blockedP = (publisher) => {
-  var siteSetting = appStore.getState().get('siteSettings').get(`https?://${publisher}`)
+  var result
 
-  return ((!!siteSetting) && (siteSetting.get('ledgerPaymentsShown') === false))
+  if (synopsis.publishers[publisher] && synopsis.publishers[publisher].options) {
+    result = synopsis.publishers[publisher].options.blockedP
+  }
+
+  return (result || false)
 }
 
 var stickyP = (publisher) => {
-  var siteSettings = appStore.getState().get('siteSettings')
-  var pattern = `https?://${publisher}`
-  var siteSetting = siteSettings.get(pattern)
-  var result = (siteSetting) && (siteSetting.get('ledgerPayments'))
+  var result
 
-  // NB: legacy clean-up
-  if ((typeof result === 'undefined') && (typeof synopsis.publishers[publisher].options.stickyP !== 'undefined')) {
+  if (synopsis.publishers[publisher] && synopsis.publishers[publisher].options) {
     result = synopsis.publishers[publisher].options.stickyP
-    appActions.changeSiteSetting(pattern, 'ledgerPayments', result)
-  }
-
-  if (synopsis.publishers[publisher] &&
-    synopsis.publishers[publisher].options &&
-    synopsis.publishers[publisher].options.stickyP) {
-    delete synopsis.publishers[publisher].options.stickyP
   }
 
   return (result === undefined || result)
@@ -1751,7 +1779,8 @@ var run = (delayTime) => {
       'blockedP', 'stickyP', 'verified',
       'excluded', 'eligibleP', 'visibleP',
       'contribP',
-      'duration', 'visits'
+      'duration', 'visits',
+      'pinned'
     ])
     entries = synopsis.topN() || []
     entries.forEach((entry) => {
@@ -1761,7 +1790,8 @@ var run = (delayTime) => {
         blockedP(publisher), stickyP(publisher), synopsis.publishers[publisher].options.verified === true,
         synopsis.publishers[publisher].options.exclude === true, eligibleP(publisher), visibleP(publisher),
         contributeP(publisher),
-        Math.round(synopsis.publishers[publisher].duration / 1000), synopsis.publishers[publisher].visits ])
+        Math.round(synopsis.publishers[publisher].duration / 1000), synopsis.publishers[publisher].visits,
+        synopsis.publishers[publisher].pinPercentage || '' ])
     })
   }
 
