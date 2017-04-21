@@ -9,11 +9,12 @@
    module entry points:
      init()   - called by app/index.js   to start module
      quit()   -   ..   ..   ..     ..    prior to browser quitting
-     boot()   -   ..   ..   ..      ..   to create wallet
+     boot()   -   ..   ..   ..     ..    to create wallet
+     reset()  -   ..   ..   ..     ..    to remove state
 
    IPC entry point:
-      LEDGER_PUBLISHER - called synchronously by app/extensions/brave/content/scripts/pageInformation.js
-      CHANGE_SETTING - called asynchronously to record a settings change
+      LEDGER_PUBLISHER  - called synchronously by app/extensions/brave/content/scripts/pageInformation.js
+      CHANGE_SETTING    - called asynchronously to record a settings change
 
    eventStore entry point:
       addChangeListener - called when tabs render or gain focus
@@ -266,7 +267,9 @@ var init = () => {
 var quit = () => {
   visit('NOOP', underscore.now(), null)
   clearInterval(doneTimer)
-  doneWriter()
+  if (getSetting(settings.PAYMENTS_ENABLED)) return doneWriter()
+
+  if (getSetting(settings.SHUTDOWN_CLEAR_HISTORY)) reset()
 }
 
 var boot = () => {
@@ -293,6 +296,16 @@ var boot = () => {
     getBalance()
 
     bootP = false
+  })
+}
+
+var reset = () => {
+  var files = [ logPath, publisherPath, scoresPath, statePath, synopsisPath ]
+
+  files.forEach((file) => {
+    fs.unlink(file, (err) => {
+      if ((err) && (err.code !== 'ENOENT')) console.log(err)
+    })
   })
 }
 
@@ -2301,5 +2314,6 @@ module.exports = {
   recoverKeys: recoverKeys,
   backupKeys: backupKeys,
   quit: quit,
-  boot: boot
+  boot: boot,
+  reset: reset
 }
