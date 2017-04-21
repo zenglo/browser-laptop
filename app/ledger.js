@@ -303,7 +303,7 @@ var reset = () => {
   var files = [ logPath, publisherPath, scoresPath, statePath, synopsisPath ]
 
   files.forEach((file) => {
-    fs.unlink(file, (err) => {
+    fs.unlink(pathName(file), (err) => {
       if ((err) && (err.code !== 'ENOENT')) console.log(err)
     })
   })
