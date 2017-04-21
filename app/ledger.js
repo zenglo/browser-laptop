@@ -269,7 +269,7 @@ var quit = () => {
   clearInterval(doneTimer)
   if (getSetting(settings.PAYMENTS_ENABLED)) return doneWriter()
 
-  if (getSetting(settings.SHUTDOWN_CLEAR_HISTORY)) reset()
+  if (getSetting(settings.SHUTDOWN_CLEAR_HISTORY)) reset(true)
 }
 
 var boot = () => {
@@ -299,9 +299,10 @@ var boot = () => {
   })
 }
 
-var reset = () => {
-  var files = [ logPath, publisherPath, scoresPath, statePath, synopsisPath ]
+var reset = (quitP) => {
+  var files = [ logPath, publisherPath, scoresPath, synopsisPath ]
 
+  if (!quitP) files.push(statePath)
   files.forEach((file) => {
     fs.unlink(pathName(file), (err) => {
       if ((err) && (err.code !== 'ENOENT')) console.log(err)
