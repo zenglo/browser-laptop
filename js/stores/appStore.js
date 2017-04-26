@@ -36,6 +36,7 @@ const webtorrent = require('../../app/browser/webtorrent')
 const assert = require('assert')
 const profiles = require('../../app/browser/profiles')
 const {zoomLevel} = require('../../app/common/constants/toolbarUserInterfaceScale')
+const telemetry = require('../../app/telemetry')
 
 // state helpers
 const basicAuthState = require('../../app/common/state/basicAuthState')
@@ -222,6 +223,7 @@ const createWindow = (action) => {
     }
 
     mainWindow.webContents.on('did-finish-load', (e) => {
+      telemetry.setCheckpointAndReport('did-finish-load')
       lastEmittedState = appState
       mainWindow.webContents.setZoomLevel(zoomLevel[toolbarUserInterfaceScale] || 0.0)
       e.sender.send(messages.INITIALIZE_WINDOW,
