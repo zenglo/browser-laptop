@@ -134,27 +134,29 @@ class SyncTab extends ImmutableComponent {
   get devicesTableRows () {
     const devices = this.props.syncData.get('devices')
     if (!devices) { return [] }
-    return devices.map((device, id) => [
-      {
-        html: id,
-        value: parseInt(id)
-      },
-      {
-        html: device.get('name'),
-        value: device.get('name')
-      },
-      {
-        html: new Date(device.get('lastRecordTimestamp')).toLocaleString(),
-        value: device.get('lastRecordTimestamp')
-      }
-    ])
+    let rows = []
+    devices.forEach((device, id) =>
+      rows.push([
+        parseInt(id),
+        {
+          html: device.get('name'),
+          value: device.get('name')
+        },
+        {
+          html: new Date(device.get('lastRecordTimestamp')).toLocaleString(),
+          value: device.get('lastRecordTimestamp')
+        }
+      ])
+    )
+    return rows
   }
 
   get devicesContent () {
-    return <section className={css(styles.settingsListContainerMargin__top)}>
+    return <section className={css(styles.settingsListContainerMargin__top)} data-test-id='syncDevices'>
       <DefaultSectionTitle data-l10n-id='syncDevices' data-test-id='syncDevices' />
       <SortableTable
         headings={['id', 'syncDeviceName', 'syncDeviceLastActive']}
+        columnClassNames={['id', 'syncDeviceName', 'syncDeviceLastActive']}
         defaultHeading='syncDeviceLastActive'
         defaultHeadingSortOrder='desc'
         rows={this.devicesTableRows}

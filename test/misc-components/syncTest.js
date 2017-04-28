@@ -17,6 +17,7 @@ const addButton = '[data-test-id="syncAddButton"]'
 const createButton = '[data-test-id="syncCreateButton"]'
 const newDeviceButton = '[data-test-id="syncNewDeviceButton"]'
 
+const CODE_WORDS = 'Idyllic undergrowth sheepman chez wishy undergroundeR verseman plyer  a, a, a, a, a, a, a, a '
 const PANEL_SEED = Immutable.fromJS(Array(32).fill(0))
 
 function toHex (byteArray) {
@@ -160,7 +161,6 @@ describe('Sync Panel', function () {
     })
 
     it('sync profile can be recreated', function * () {
-      const codewords = 'Idyllic undergrowth sheepman chez wishy undergroundeR verseman plyer  a, a, a, a, a, a, a, a '
       const hex = '68c2ecccc83a2080fc8beccbf55da43c00000000000000000000000000000000'
       yield this.app.client
         .tabByIndex(0)
@@ -169,7 +169,7 @@ describe('Sync Panel', function () {
         .click(syncTab)
         .waitForVisible(addButton)
         .click(addButton)
-        .setValue('textarea', codewords)
+        .setValue('textarea', CODE_WORDS)
         .setValue('input', 'pyramid 1')
         .click(createButton)
         .windowByUrl(Brave.browserWindowUrl)
@@ -302,6 +302,33 @@ describe('Sync Panel', function () {
         .waitUntil(function () {
           return this.getAttribute('[data-test-id="syncQRImg"]', 'src').then((text) => {
             return text === 'data:image/png;base64,foo'
+          })
+        })
+    })
+  })
+
+  describe('devices', function () {
+    Brave.beforeEach(this)
+    beforeEach(function * () {
+      yield setup(this.app.client)
+    })
+
+    it('show in order', function * () {
+      yield this.app.client
+        .tabByIndex(0)
+        .loadUrl(prefsUrl)
+        .waitForVisible(syncTab)
+        .click(syncTab)
+        .waitForVisible(addButton)
+        .click(addButton)
+        .setValue('textarea', CODE_WORDS)
+        .setValue('input', 'pyramid 1')
+        .click(createButton)
+        .waitForVisible('[data-test-id="syncDevices"] tr:nth-child(10) td') // XXX: Assuming this sync profile has 10+ devices.
+        .click('[data-test-id="syncDevices"] th.heading-id')
+        .waitUntil(function () {
+          return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].every(id => {
+            return this.getText(`[data-test-id="syncDevices"] tbody tr:nth-child(${id}) td.id`) === `${id}`
           })
         })
     })
