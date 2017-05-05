@@ -31,13 +31,29 @@ class AboutReleases extends React.Component {
   //   aboutActions.setClipboard(tranformVersionInfoToString(this.state.versionInformation))
   // }
 
+  constructor () {
+    super()
+    this.state = { notes: [] }
+  }
+
+  componentDidMount () {
+    return fetch('https://api.github.com/repos/brave/browser-laptop/releases/latest')
+      .then(result => {
+        console.log('result' + result)
+        this.setState({notes: JSON.stringify(result.json())})
+      })
+  }
+
   render () {
-    return <div className='siteDetailsPage'>
-      <div className='siteDetailsPageHeader'>
-        about:releases goes here
+    return (
+      <div>
+        <h1>Release Notes:</h1>
+        <h2>{this.state.notes}</h2>
+        {this.state.notes.map(note => {
+          return <div> <h1>{note}</h1> </div>
+        })}
       </div>
-    </div>
+    )
   }
 }
-
 module.exports = <AboutReleases />
