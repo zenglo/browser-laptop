@@ -95,6 +95,9 @@ switch (getBaseUrl(getSourceAboutUrl(window.location.href))) {
   case 'about:contributions':
     element = require('./contributionStatement')
     break
+  case 'about:releases':
+    element = require('./releases')
+    break
 }
 
 if (element) {
