@@ -155,7 +155,8 @@ let generateBraveManifest = () => {
     'referrer': 'no-referrer',
     'style-src': '\'self\' \'unsafe-inline\'',
     'img-src': '* data: file://*',
-    'frame-src': '\'self\' https://buy.coinbase.com'
+    'frame-src': '\'self\' https://buy.coinbase.com',
+    'connect-src': '\'self\' https://api.github.com/repos/brave/'
   }
 
   if (process.env.NODE_ENV === 'development') {
@@ -164,7 +165,8 @@ let generateBraveManifest = () => {
     cspDirectives['default-src'] = '\'self\' http://' + devServer
     cspDirectives['connect-src'] = ['\'self\'',
       'http://' + devServer,
-      'ws://' + devServer].join(' ')
+      'ws://' + devServer,
+      'https://api.github.com/repos/brave/'].join(' ')
     cspDirectives['style-src'] = '\'self\' \'unsafe-inline\' http://' + devServer
   }
 
