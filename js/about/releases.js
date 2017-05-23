@@ -12,7 +12,7 @@ const React = require('react')
 // const ipc = window.chrome.ipcRenderer
 
 require('../../less/about/history.less')
-require('../../less/about/brave.less')
+// require('../../less/about/brave.less')
 require('../../node_modules/font-awesome/css/font-awesome.css')
 
 class AboutReleases extends React.Component {
@@ -33,27 +33,42 @@ class AboutReleases extends React.Component {
 
   constructor () {
     super()
-    this.state = { notes: [] }
+    this.state = { notes: {} }
   }
 
-  componentDidMount () {
-    return fetch('https://api.github.com/repos/brave/browser-laptop/releases/latest')
+  componentWillMount () {
+    return window.fetch('https://api.github.com/repos/brave/browser-laptop/releases/latest')
       .then(result => {
-        console.log('result' + result)
-        this.setState({notes: JSON.stringify(result.json())})
+        if (result.ok) {
+          result.json().then(data => {
+            console.log('result: ' + JSON.stringify(data))
+            this.setState({ notes: data })
+          })
+        } else {
+          console.log('maybe -- hey your connection is not ok sorry')
+        }
       })
+      // just for debugging
+      .catch(err => console.log('houston we have a problem', err))
   }
 
   render () {
+    // don't render until resource is fetch
+    if (this.state.notes === {}) {
+      return null
+    }
     return (
       <div>
         <h1>Release Notes:</h1>
-        <h2>{this.state.notes}</h2>
-        {this.state.notes.map(note => {
-          return <div> <h1>{note}</h1> </div>
-        })}
+        <h2>{JSON.stringify(this.state.notes)}</h2>
+        {
+          // Object
+          //   .keys(this.state.notes)
+          //   .map(note => <div> <h1>{this.state.notes[note]}</h1> </div>)
+        }
       </div>
     )
   }
 }
+
 module.exports = <AboutReleases />
