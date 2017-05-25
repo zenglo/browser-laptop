@@ -173,7 +173,7 @@ let generateBraveManifest = () => {
   return baseManifest
 }
 
-// Returns the Chromium extension manifest for the torrentExtension
+// Returns the Chromium extension manifest for the tbraveorrentExtension
 // The torrentExtension handles magnet: URLs
 // Analagous to the PDFJS extension, it shows a special UI for that type of resource
 let generateTorrentManifest = () => {
@@ -260,6 +260,95 @@ let generateSyncManifest = () => {
     incognito: 'not_allowed',
     key: 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAxOmBmOVzntEY6zrcrGSAyrhzL2FJt4FaP12nb899+SrV0LgpOgyqDjytuXT5IlHS74j7ZK2zTOTQy5/E9hqo6ioi1GA3PQU8E71DTaN6kW+XzP+VyZmgPoQHIxPg8jkYk/H4erfP9kMhkVOtu/XqDTqluNhOT0BvVlBpWd4unTQFWdgpCYlPrI6PsYya4FSuIDe6rCKtJABfuKFEr7U9d9MNAOJEnRS8vdBHWCuhWHqsfAaAPyKHQhnwFSFZ4eB+JznBQf7cQtB3EpOoBElyR9QvmbWFrYu87eGL5XxsojKHCrxlQ4X5ANsALa1Mdd2DHDMVqLMIiEEU42DVB0ZDewIDAQAB'
   }
+}
+
+const generateCryptoTokenManifest = () => {
+  const baseManifest = {
+    'name': 'CryptoTokenExtension',
+    'description': 'CryptoToken Component Extension',
+    'version': '0.9.46',
+    'key': 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv6gfMMQ84MTaFeFsY835/xcfGvvF88m+lJ+cOEVmC4oNyERtmueS1ra8YIWbX86fxUPaz7wB5Lcu9no/yf0sdxY7b7kB9SD2ZbB7uPdjemW+P/7eQ7JG/fyGkscAPrxkBfx71bbM63wemCs1di3KFYYV+mkLG3YshfsfncHqXCfn7TXtItOwJfNkBeSEuq/gGp56nv53OhuzoAgBoq2gBWLZtKvqbxZenqu5OkvtFJRxfZ6e5toX8P84rBebALiJHpwQ6zmlEoTMwl2ymRDWRjMhRtI+n7fXAOSowWhjx3ucL1ln0j1jWUAr9KeFnQpDu4CBWNXpeFdo0K5FB7bJIwIDAQAB',
+    'manifest_version': 2,
+    'permissions': [
+      'hid',
+      'u2fDevices',
+      'usb',
+      'cryptotokenPrivate',
+      'externally_connectable.all_urls',
+      'tabs',
+      'https://*/*',
+      'http://*/*',
+      {
+        'usbDevices': [
+          {
+            'vendorId': 4176,
+            'productId': 529
+          }
+        ]
+      }
+    ],
+    'externally_connectable': {
+      'matches': [
+        '<all_urls>'
+      ],
+      'ids': [
+        'fjajfjhkeibgmiggdfehjplbhmfkialk'
+      ],
+      'accepts_tls_channel_id': true
+    },
+    'background': {
+      'persistent': true,
+      'scripts': [
+        'util.js',
+        'b64.js',
+        'sha256.js',
+        'timer.js',
+        'countdown.js',
+        'countdowntimer.js',
+        'devicestatuscodes.js',
+        'approvedorigins.js',
+        'errorcodes.js',
+        'webrequest.js',
+        'messagetypes.js',
+        'factoryregistry.js',
+        'closeable.js',
+        'requesthelper.js',
+        'enroller.js',
+        'requestqueue.js',
+        'signer.js',
+        'origincheck.js',
+        'textfetcher.js',
+        'appid.js',
+        'watchdog.js',
+        'logging.js',
+        'webrequestsender.js',
+        'window-timer.js',
+        'cryptotokenorigincheck.js',
+        'cryptotokenapprovedorigins.js',
+        'gnubbydevice.js',
+        'hidgnubbydevice.js',
+        'usbgnubbydevice.js',
+        'gnubbies.js',
+        'gnubby.js',
+        'gnubby-u2f.js',
+        'gnubbyfactory.js',
+        'singlesigner.js',
+        'multiplesigner.js',
+        'generichelper.js',
+        'inherits.js',
+        'individualattest.js',
+        'devicefactoryregistry.js',
+        'usbhelper.js',
+        'usbenrollhandler.js',
+        'usbsignhandler.js',
+        'usbgnubbyfactory.js',
+        'googlecorpindividualattest.js',
+        'cryptotokenbackground.js'
+      ]
+    },
+    'incognito': 'split'
+  }
+  return baseManifest
 }
 
 const extensionInfo = {
@@ -412,7 +501,7 @@ module.exports.init = () => {
     }
     if (!extensionInfo.isLoaded(extensionId) && !extensionInfo.isLoading(extensionId)) {
       extensionInfo.setState(extensionId, extensionStates.LOADING)
-      if (extensionId === config.braveExtensionId || extensionId === config.torrentExtensionId || extensionId === config.syncExtensionId) {
+      if (extensionId === config.braveExtensionId || extensionId === config.torrentExtensionId || extensionId === config.cryptoTokenExtensionId || extensionId === config.syncExtensionId) {
         session.defaultSession.extensions.load(extensionPath, manifest, manifestLocation)
         return
       }
@@ -458,6 +547,8 @@ module.exports.init = () => {
   // Manually install the braveExtension and torrentExtension
   extensionInfo.setState(config.braveExtensionId, extensionStates.REGISTERED)
   loadExtension(config.braveExtensionId, getExtensionsPath('brave'), generateBraveManifest(), 'component')
+  extensionInfo.setState(config.cryptoTokenExtensionId, extensionStates.REGISTERED)
+  loadExtension(config.cryptoTokenExtensionId, getExtensionsPath('cryptotoken'), generateCryptoTokenManifest(), 'component')
   extensionInfo.setState(config.syncExtensionId, extensionStates.REGISTERED)
   loadExtension(config.syncExtensionId, getExtensionsPath('brave'), generateSyncManifest(), 'unpacked')
   if (getSetting(settings.TORRENT_VIEWER_ENABLED)) {

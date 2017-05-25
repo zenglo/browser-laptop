@@ -51,6 +51,7 @@ module.exports = {
   vimiumExtensionId: 'dbepggeogbaibhgnhhndojpepiihcmeb',
   honeyExtensionId: 'bmnlcjabgnpnenekpadlanbbkooimhnj',
   widevineComponentId: 'oimompecagnajdejgnnjijobebaeigek',
+  cryptoTokenExtensionId: 'blacgomjjfajohionjefppelginljglp',
   coinbaseOrigin: 'https://buy.coinbase.com',
   newtab: {
     fallbackImage: {
