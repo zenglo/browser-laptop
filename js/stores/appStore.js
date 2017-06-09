@@ -26,7 +26,9 @@ const EventEmitter = require('events').EventEmitter
 const Immutable = require('immutable')
 const diff = require('immutablediff')
 const debounce = require('../lib/debounce')
+const fs = require('fs')
 const path = require('path')
+const os = require('os')
 const autofill = require('../../app/autofill')
 const nativeImage = require('../../app/nativeImage')
 const filtering = require('../../app/filtering')
@@ -372,6 +374,20 @@ function handleChangeSettingAction (settingKey, settingValue) {
 let reducers = []
 let ledger = null
 
+const TIME_LOG_PATH = path.join(app.getPath('userData'), 'time-log.csv')
+
+/**
+ * @param {Array} timeStart process.hrtime() return value
+ * @param {Object} action app action
+ */
+const logTime = (timeStart, action) => {
+  const time = process.hrtime(timeStart)
+  const data = `${new Date().toISOString()},${action.actionType},${time}`
+  fs.appendFile(TIME_LOG_PATH, data + os.EOL, (err) => {
+    if (err) { console.log(err) }
+  })
+}
+
 const applyReducers = (state, action, immutableAction) => reducers.reduce(
     (appState, reducer) => {
       const newState = reducer(appState, action, immutableAction)
@@ -381,6 +397,7 @@ const applyReducers = (state, action, immutableAction) => reducers.reduce(
     }, appState)
 
 const handleAppAction = (action) => {
+  const timeStart = process.hrtime()
   if (action.actionType === appConstants.APP_SET_STATE) {
     ledger = require('../../app/ledger')
     reducers = [
@@ -903,6 +920,7 @@ const handleAppAction = (action) => {
     default:
   }
 
+  logTime(timeStart, action)
   emitChanges()
 }
 
