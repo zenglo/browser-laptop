@@ -148,6 +148,8 @@ class Tabs extends React.Component {
     props.onPreviousPage = pageIndex > 0
     props.shouldAllowWindowDrag = windowState.shouldAllowWindowDrag(state, currentWindow, activeFrame, isFocused())
 
+    props.activeFrame = activeFrame
+
     // used in other functions
     props.fixTabWidth = currentWindow.getIn(['ui', 'tabs', 'fixTabWidth'])
     props.tabPageIndex = currentWindow.getIn(['ui', 'tabs', 'tabPageIndex'])
@@ -160,7 +162,8 @@ class Tabs extends React.Component {
   render () {
     this.tabRefs = []
     return <div className='tabs'
-      onMouseLeave={this.onMouseLeave}>
+      onMouseLeave={this.onMouseLeave}
+      onContextMenu={contextMenus.onTabsContextMenu.bind(this, this.props.activeFrame)}>
       <span className={cx({
         tabStripContainer: true,
         isPreview: this.props.previewTabPageIndex !== undefined,

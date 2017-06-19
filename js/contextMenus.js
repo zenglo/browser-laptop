@@ -647,6 +647,32 @@ function tabTemplateInit (frameProps) {
   return menuUtil.sanitizeTemplateItems(template)
 }
 
+function tabsTemplateInit () {
+
+  const template = []
+
+  template.push( CommonMenu.newTabMenuItem(),
+    CommonMenu.separatorMenuItem,
+    CommonMenu.newPrivateTabMenuItem(),
+    CommonMenu.newPartitionedTabMenuItem(),
+    CommonMenu.newWindowMenuItem(),
+    CommonMenu.separatorMenuItem,
+    CommonMenu.muteAllTabsMenuItem(),
+    CommonMenu.showTabPreviewsMenuItem(),
+    CommonMenu.separatorMenuItem,
+    CommonMenu.bookmarksManagerMenuItem(),
+    CommonMenu.bookmarksToolbarMenuItem(),
+    CommonMenu.separatorMenuItem
+  )
+
+  template.push(Object.assign({},
+     CommonMenu.reopenLastClosedTabItem(),
+    { enabled: windowStore.getState().get('closedFrames').size > 0 }
+  ))
+
+  return menuUtil.sanitizeTemplateItems(template)
+}
+
 function getMisspelledSuggestions (selection, isMisspelled, suggestions) {
   const hasSelection = selection.length > 0
   const template = []
@@ -1353,6 +1379,12 @@ function onTabContextMenu (frameProps, e) {
   tabMenu.popup(getCurrentWindow())
 }
 
+function onTabsContextMenu (frameProps, e) {
+  e.stopPropagation()
+  const tabsMenu = Menu.buildFromTemplate(tabsTemplateInit(frameProps))
+  tabsMenu.popup(getCurrentWindow())
+}
+
 function onNewTabContextMenu (target) {
   const menuTemplate = [
     CommonMenu.newTabMenuItem(),
@@ -1480,6 +1512,7 @@ module.exports = {
   onFlashContextMenu,
   onMainContextMenu,
   onTabContextMenu,
+  onTabsContextMenu,
   onNewTabContextMenu,
   onTabsToolbarContextMenu,
   onDownloadsToolbarContextMenu,

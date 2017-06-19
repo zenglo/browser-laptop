@@ -141,6 +141,15 @@ module.exports.reopenLastClosedTabItem = () => {
   }
 }
 
+module.exports.muteAllTabsMenuItem = () => {
+  return {
+    label: locale.translation('muteTabs'),
+    click: (item) => {
+      windowActions.muteAllAudio(framePropsList, true)
+    }
+  }
+}
+
 module.exports.separatorMenuItem = {
   type: 'separator'
 }
@@ -354,6 +363,17 @@ module.exports.bookmarksToolbarMenuItem = () => {
     checked: getSetting(settings.SHOW_BOOKMARKS_TOOLBAR),
     click: (item, focusedWindow) => {
       appActions.changeSetting(settings.SHOW_BOOKMARKS_TOOLBAR, !getSetting(settings.SHOW_BOOKMARKS_TOOLBAR))
+    }
+  }
+}
+
+module.exports.showTabPreviewsMenuItem = () => {
+  return {
+    label: locale.translation('showTabPreviews'),
+    type: 'checkbox',
+    checked: getSetting(settings.SHOW_TAB_PREVIEWS),
+    click: (item, focusedWindow) => {
+      appActions.changeSetting(settings.SHOW_TAB_PREVIEWS, !getSetting(settings.SHOW_TAB_PREVIEWS))
     }
   }
 }
