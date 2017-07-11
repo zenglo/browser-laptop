@@ -3,8 +3,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 module.exports = [
-  'pre-comit',
-  'pre-push',
+  'husky',
   'test/',
   'docs/',
   'tools/',
