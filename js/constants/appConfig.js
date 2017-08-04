@@ -119,9 +119,6 @@ module.exports = {
     fetchOffset: 30, // seconds; reduce syncUtil.now() by this amount to compensate for records pending S3 consistency. See brave/sync #139
     resendPendingRecordInterval: isProduction ? (1000 * 60 * 12) : (1000 * 60 * 4)
   },
-  urlSuggestions: {
-    ageDecayConstant: 50
-  },
   defaultSettings: {
     'adblock.customRules': '',
     'general.language': null, // null means to use the OS lang

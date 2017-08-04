@@ -8,6 +8,7 @@
 let ready = false
 
 // Setup the crash handling
+require('./browser/init')
 const CrashHerald = require('./crash-herald')
 const telemetry = require('./telemetry')
 
