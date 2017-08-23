@@ -7,12 +7,28 @@
     "appId": "brave.com",
     "electronDist": "node_modules/electron-prebuilt/dist",
     "mac": {
-      "category": "your.app.category.type"
+      "category": "public.app-category.productivity"
     },
     "muonVersion": "1.2.3.4",
     "npmRebuild": true,
-    "nodeGypRebuild": false
+    "nodeGypRebuild": false,
+    "linux": {
+      "category": "Productivity",
+      "target": [
+        "AppImage",
+        "deb",
+        "snap",
+        "rpm",
+        "dir",
+        "freebsd",
+        "tar.gz"
+      ]
+    },
+    "snap": {
+      "confinement": "classic"
+    }
   },
+
   "config": {
     "port": "8080"
   },
@@ -30,8 +46,8 @@
     "clean-sb-data": "node ./tools/clean.js userData SafeBrowsingData.dat",
     "clean-session-store": "node ./tools/clean.js userData session-store-1",
     "clean-tp-data": "node ./tools/clean.js userData TrackingProtection.dat",
-    "linux32pack": "electron-builder --ia32 && electron-builder --ia32 --linux=rpm && electron-builder --ia32 --linux=deb",
-    "linux64pack": "electron-builder && electron-build --linux=rpm && electron-build --linux=deb",
+    "linux32pack": "electron-builder --ia32 --linux",
+    "linux64pack": "electron-builder --linux",
     "download-languages": "node ./tools/downloadLanguages",
     "download-sync-client": "node ./tools/downloadSyncClient",
     "electron-rebuild": "electron-rebuild",
@@ -159,7 +175,7 @@
     "co-mocha": "^1.1.2",
     "cross-env": "^3.1.4",
     "css-loader": "~0.28.7",
-    "electron-builder": "^19.24.2",
+    "electron-builder": "^19.28.4",
     "electron-chromedriver": "^1.7.1",
     "electron-packager": "brave/electron-packager",
     "electron-prebuilt": "brave/electron-prebuilt",
