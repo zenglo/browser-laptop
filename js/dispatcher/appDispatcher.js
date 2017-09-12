@@ -49,6 +49,16 @@ class AppDispatcher {
     if (process.type === 'renderer') {
       ipc.send('app-dispatcher-register')
     }
+    return this.registerLocalCallback(callback)
+  }
+
+  /**
+   * Same as above, but registers the specified callback
+   * locally only.  This is used by the windowStore since
+   * the store process is registered as soon as the window
+   * is created.
+   */
+  registerLocalCallback (callback) {
     this.callbacks.push(callback)
     return this.callbacks.length - 1 // index
   }
@@ -131,33 +141,16 @@ class AppDispatcher {
   shutdown () {
     appDispatcher.dispatch = (payload) => {}
   }
-}
 
-const appDispatcher = new AppDispatcher()
-
-const doneDispatching = () => {
-  if (dispatchCargo.idle()) {
-    appDispatcher.dispatching = false
+  windowReady (windowId) => {
+    const {getWindow} = require('../../app/browser/window')
+    const win = getWindow(windowId)
+    if (win && win.__registrantCargo) {
+      registrantCargo.resume()
+    }
   }
-}
 
-const dispatchCargo = async.cargo((task, callback) => {
-  for (let i = 0; i < task.length; i++) {
-    appDispatcher.dispatchInternal(task[i], () => {})
-  }
-  callback()
-  doneDispatching()
-}, 200)
-
-const ipcCargo = async.cargo((tasks, callback) => {
-  ipc.send(messages.DISPATCH_ACTION, Serializer.serialize(tasks))
-  callback()
-}, 200)
-
-if (processType === 'browser') {
-  ipc.on('app-dispatcher-register', (event) => {
-    const registrant = event.sender
-    const hostWebContents = event.sender.hostWebContents || event.sender
+  registerWindow (registrant, hostWebContents) {
     const win = BrowserWindow.fromWebContents(hostWebContents)
     const windowId = win.id
 
@@ -167,6 +160,13 @@ if (processType === 'browser') {
       }
       callback()
     }, 20)
+
+    // If the window isn't ready yet then wait until it is ready before delivering
+    // messages to it.
+    if (!win.__ready) {
+      registrantCargo.pause()
+      win.__registrantCargo = registrantCargo
+    }
 
     const callback = function (payload) {
       try {
@@ -196,13 +196,42 @@ if (processType === 'browser') {
         appDispatcher.unregister(callback)
       }
     }
-    event.sender.on('crashed', () => {
+    registrant.on('crashed', () => {
       appDispatcher.unregister(callback)
     })
-    event.sender.on('destroyed', () => {
+    registrant.on('destroyed', () => {
       appDispatcher.unregister(callback)
     })
     appDispatcher.register(callback)
+  }
+}
+
+const appDispatcher = new AppDispatcher()
+
+const doneDispatching = () => {
+  if (dispatchCargo.idle()) {
+    appDispatcher.dispatching = false
+  }
+}
+
+const dispatchCargo = async.cargo((task, callback) => {
+  for (let i = 0; i < task.length; i++) {
+    appDispatcher.dispatchInternal(task[i], () => {})
+  }
+  callback()
+  doneDispatching()
+}, 200)
+
+const ipcCargo = async.cargo((tasks, callback) => {
+  ipc.send(messages.DISPATCH_ACTION, Serializer.serialize(tasks))
+  callback()
+}, 200)
+
+if (processType === 'browser') {
+  ipc.on('app-dispatcher-register', (event) => {
+    const registrant = event.sender
+    const hostWebContents = event.sender.hostWebContents || event.sender
+    appDispatcher.registerWindow(registrant, hostWebContents)
   })
 
   const dispatchEventPayload = (event, payload) => {

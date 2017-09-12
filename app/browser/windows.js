@@ -320,6 +320,7 @@ const api = {
         win.__alreadyPinnedSites = new Immutable.Set()
         updatePinnedTabs(win)
         win.__ready = true
+        win.emit('window-renderer-ready')
       }
     })
   },

@@ -5,6 +5,7 @@
 'use strict'
 
 const appConstants = require('../../../js/constants/appConstants')
+const appDispatcher = require('../../../js/dispatcher/appDispatcher')
 const windowConstants = require('../../../js/constants/windowConstants')
 const windowState = require('../../common/state/windowState')
 const windows = require('../windows')
@@ -19,6 +20,7 @@ const windowsReducer = (state, action, immutableAction) => {
       break
     case appConstants.APP_WINDOW_READY:
       windows.windowReady(action.get('windowId'))
+      appDispatcher.windowReady(action.get('windowId'))
       break
     case appConstants.APP_TAB_UPDATED:
       if (immutableAction.getIn(['changeInfo', 'pinned']) != null) {
