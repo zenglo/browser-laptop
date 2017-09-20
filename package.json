@@ -5,6 +5,10 @@
   "main": "./app/index.js",
   "build": {
     "appId": "brave.com",
+    "appImage": {
+      "category": "Network",
+      "synopsis": "Brave laptop and desktop browser"
+    },
     "electronDist": "node_modules/electron-prebuilt/dist",
     "mac": {
       "category": "public.app-category.productivity"
@@ -14,6 +18,7 @@
     "nodeGypRebuild": false,
     "linux": {
       "category": "Productivity",
+      "synopsis": "Brave laptop and desktop browser",
       "target": [
         "AppImage",
         "deb",
@@ -25,7 +30,8 @@
       ]
     },
     "snap": {
-      "confinement": "classic"
+      "confinement": "classic",
+      "synopsis": "Brave laptop and desktop browser"
     }
   },
 
