@@ -7,6 +7,7 @@ const Immutable = require('immutable')
 // State
 const bookmarksState = require('../../common/state/bookmarksState')
 const bookmarkToolbarState = require('../../common/state/bookmarkToolbarState')
+const tabState = require('../../common/state/tabState')
 
 // Constants
 const appConstants = require('../../../js/constants/appConstants')
@@ -142,6 +143,15 @@ const bookmarksReducer = (state, action, immutableAction) => {
         }
         break
       }
+    case appConstants.APP_TAB_FAV_ICON_UPDATED: {
+      const tabId = action.get('tabId')
+      const favIconUrls = action.get('favIconUrls')
+      const url = tabState.getUrl(state, tabId)
+      if (favIconUrls.size > 0) {
+        state = bookmarksState.updateFavicon(state, url, favIconUrls.get(0))
+      }
+      break
+    }
   }
 
   return state

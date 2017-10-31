@@ -283,7 +283,7 @@ class NewTabPage extends React.Component {
                       ? this.getLetterFromUrl(site)
                       : <img src={site.get('favicon')} />
                     }
-                    style={{backgroundColor: site.get('themeColor')}}
+                    style={{backgroundColor: site.get('themeColor') || site.get('computedThemeColor')}}
                     onToggleBookmark={this.onToggleBookmark.bind(this, site)}
                     onPinnedTopSite={this.onPinnedTopSite.bind(this, site.get('key'))}
                     onIgnoredTopSite={this.onIgnoredTopSite.bind(this, site.get('key'))}

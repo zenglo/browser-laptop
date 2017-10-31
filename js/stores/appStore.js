@@ -4,7 +4,6 @@
 
 'use strict'
 const appConstants = require('../constants/appConstants')
-const windowConstants = require('../constants/windowConstants')
 const ExtensionConstants = require('../../app/common/constants/extensionConstants')
 const appDispatcher = require('../dispatcher/appDispatcher')
 const settings = require('../constants/settings')
@@ -44,7 +43,6 @@ const aboutHistoryState = require('../../app/common/state/aboutHistoryState')
 const tabState = require('../../app/common/state/tabState')
 const bookmarksState = require('../../app/common/state/bookmarksState')
 const bookmarkFoldersState = require('../../app/common/state/bookmarkFoldersState')
-const historyState = require('../../app/common/state/historyState')
 const bookmarkToolbarState = require('../../app/common/state/bookmarkToolbarState')
 
 // Only used internally
@@ -510,13 +508,6 @@ const handleAppAction = (action) => {
       break
     case appConstants.APP_DEFAULT_BROWSER_CHECK_COMPLETE:
       appState = appState.set('defaultBrowserCheckComplete', {})
-      break
-    case windowConstants.WINDOW_SET_FAVICON:
-      if (action.frameProps.get('favicon') !== action.favicon) {
-        appState = bookmarksState.updateFavicon(appState, action.frameProps.get('location'), action.favicon)
-        appState = historyState.updateFavicon(appState, action.frameProps, action.favicon)
-        calculateTopSites(false)
-      }
       break
     case appConstants.APP_RENDER_TO_PDF:
       const pdf = require('../../app/pdf')

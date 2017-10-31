@@ -28,6 +28,7 @@ const privateState = require('../../../common/state/tabContentState/privateState
 const audioState = require('../../../common/state/tabContentState/audioState')
 const tabUIState = require('../../../common/state/tabUIState')
 const tabState = require('../../../common/state/tabState')
+const historyState = require('../../../common/state/historyState')
 
 // Constants
 const dragTypes = require('../../../../js/constants/dragTypes')
@@ -261,7 +262,8 @@ class Tab extends React.Component {
     props.isPrivateTab = privateState.isPrivateTab(currentWindow, frameKey)
     props.isActive = frameStateUtil.isFrameKeyActive(currentWindow, frameKey)
     props.tabWidth = currentWindow.getIn(['ui', 'tabs', 'fixTabWidth'])
-    props.themeColor = tabUIState.getThemeColor(currentWindow, frameKey)
+    props.themeColor = historyState.getThemeColor(state, frame.get('location')) ||
+      historyState.getComputedThemeColor(state, frame.get('location'))
     props.title = frame.get('title')
     props.partOfFullPageSet = partOfFullPageSet
     props.showAudioTopBorder = audioState.showAudioTopBorder(currentWindow, frameKey, isPinned)

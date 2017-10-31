@@ -47,6 +47,7 @@ describe('bookmarkUtil unit test', function () {
         partitionNumber: 0,
         objectId: null,
         themeColor: undefined,
+        computedThemeColor: undefined,
         type: siteTags.BOOKMARK
       },
       'https://clifton.io/|0|0': {
@@ -58,6 +59,7 @@ describe('bookmarkUtil unit test', function () {
         partitionNumber: 0,
         objectId: null,
         themeColor: undefined,
+        computedThemeColor: undefined,
         type: siteTags.BOOKMARK
       }
     },
@@ -96,10 +98,11 @@ describe('bookmarkUtil unit test', function () {
       title: 'Brave',
       active: true,
       bookmarked: false,
+      themeColor: '#FFF',
+      computedThemeColor: '#FFE',
       frame: {
         partitionNumber: 2,
-        icon: 'ico',
-        themeColor: '#FFF'
+        icon: 'ico'
       }
     }],
     tabsInternal: {
@@ -495,6 +498,7 @@ describe('bookmarkUtil unit test', function () {
         objectId: null,
         favicon: undefined,
         themeColor: undefined,
+        computedThemeColor: undefined,
         type: siteTags.BOOKMARK,
         key: 'https://brave.com|0|0',
         skipSync: null,
@@ -509,7 +513,8 @@ describe('bookmarkUtil unit test', function () {
         .setIn(['historySites', 'https://brave.com|0'], Immutable.fromJS({
           partitionNumber: 1,
           favicon: 'icon',
-          themeColor: '#000'
+          themeColor: '#000',
+          computedThemeColor: '#001'
         }))
 
       const bookmark = Immutable.fromJS({
@@ -525,6 +530,7 @@ describe('bookmarkUtil unit test', function () {
         objectId: null,
         favicon: 'icon',
         themeColor: '#000',
+        computedThemeColor: '#001',
         type: siteTags.BOOKMARK,
         key: 'https://brave.com|0|0',
         skipSync: null,
@@ -548,6 +554,7 @@ describe('bookmarkUtil unit test', function () {
         objectId: null,
         favicon: 'ico',
         themeColor: '#FFF',
+        computedThemeColor: '#FFE',
         type: siteTags.BOOKMARK,
         key: 'https://brave.com/|0|0',
         skipSync: null,
@@ -571,6 +578,7 @@ describe('bookmarkUtil unit test', function () {
         objectId: null,
         favicon: 'chrome-extension://mnojpmjdmbbfmejpflffifhffcmidifd/img/newtab/defaultTopSitesIcon/facebook.png',
         themeColor: 'rgb(59, 89, 152)',
+        computedThemeColor: undefined,
         type: siteTags.BOOKMARK,
         key: 'https://www.facebook.com/BraveSoftware/|0|0',
         skipSync: null,

@@ -20,11 +20,19 @@ describe('historyReducer unit test', function () {
     bookmarkFolders: {},
     cache: {},
     historySites: {},
-    tabs: [],
     about: {
       history: {
         entries: [],
         updatedStamp: 0
+      }
+    },
+    tabs: [{
+      tabId: 1,
+      url: 'https://clifton.io'
+    }],
+    tabsInternal: {
+      index: {
+        1: 0
       }
     }
   })
@@ -44,6 +52,7 @@ describe('historyReducer unit test', function () {
         objectId: null,
         partitionNumber: 0,
         themeColor: undefined,
+        computedThemeColor: undefined,
         title: 'Clifton'
       },
       'https://brave.com/|0': {
@@ -55,10 +64,10 @@ describe('historyReducer unit test', function () {
         objectId: null,
         partitionNumber: 0,
         themeColor: undefined,
+        computedThemeColor: undefined,
         title: 'Brave'
       }
     },
-    tabs: [],
     about: {
       history: {
         entries: [
@@ -71,6 +80,7 @@ describe('historyReducer unit test', function () {
             objectId: null,
             partitionNumber: 0,
             themeColor: undefined,
+            computedThemeColor: undefined,
             title: 'Clifton'
           },
           {
@@ -82,9 +92,19 @@ describe('historyReducer unit test', function () {
             objectId: null,
             partitionNumber: 0,
             themeColor: undefined,
+            computedThemeColor: undefined,
             title: 'Brave'
           }
         ]
+      }
+    },
+    tabs: [{
+      tabId: 1,
+      url: 'https://clifton.io'
+    }],
+    tabsInternal: {
+      index: {
+        1: 0
       }
     }
   })
@@ -228,6 +248,7 @@ describe('historyReducer unit test', function () {
             partitionNumber: 0,
             skipSync: null,
             themeColor: undefined,
+            computedThemeColor: undefined,
             title: 'Clifton'
           },
           'https://brave.com/|0': {
@@ -240,6 +261,7 @@ describe('historyReducer unit test', function () {
             partitionNumber: 0,
             skipSync: null,
             themeColor: undefined,
+            computedThemeColor: undefined,
             title: 'Brave'
           }
         }))
@@ -255,6 +277,7 @@ describe('historyReducer unit test', function () {
               partitionNumber: 0,
               skipSync: null,
               themeColor: undefined,
+              computedThemeColor: undefined,
               title: 'Clifton'
             },
             {
@@ -267,6 +290,7 @@ describe('historyReducer unit test', function () {
               partitionNumber: 0,
               skipSync: null,
               themeColor: undefined,
+              computedThemeColor: undefined,
               title: 'Brave'
             }
           ],
@@ -299,6 +323,7 @@ describe('historyReducer unit test', function () {
             skipSync: null,
             partitionNumber: 0,
             themeColor: undefined,
+            computedThemeColor: undefined,
             title: 'Clifton'
           }
         }))
@@ -314,6 +339,7 @@ describe('historyReducer unit test', function () {
               partitionNumber: 0,
               skipSync: null,
               themeColor: undefined,
+              computedThemeColor: undefined,
               title: 'Clifton'
             }
           ],
@@ -377,6 +403,7 @@ describe('historyReducer unit test', function () {
             objectId: null,
             partitionNumber: 0,
             themeColor: undefined,
+            computedThemeColor: undefined,
             title: 'Clifton'
           }
         }))
@@ -391,6 +418,7 @@ describe('historyReducer unit test', function () {
               objectId: null,
               partitionNumber: 0,
               themeColor: undefined,
+              computedThemeColor: undefined,
               title: 'Clifton'
             }
           ],
@@ -426,6 +454,7 @@ describe('historyReducer unit test', function () {
             location: 'https://clifton.io/',
             partitionNumber: 0,
             themeColor: undefined,
+            computedThemeColor: undefined,
             title: 'Clifton'
           },
           {
@@ -437,6 +466,7 @@ describe('historyReducer unit test', function () {
             location: 'https://brave.com/',
             partitionNumber: 0,
             themeColor: undefined,
+            computedThemeColor: undefined,
             title: 'Brave'
           }
         ]))
@@ -445,6 +475,28 @@ describe('historyReducer unit test', function () {
       newState = newState.setIn(['about', 'history', 'updatedStamp'], 0)
       assert.equal(spy.calledOnce, true)
       assert.deepEqual(newState.toJS(), expectedState.toJS())
+    })
+  })
+  describe('APP_TAB_FAV_ICON_UPDATED', function () {
+    let spy
+    afterEach(function () {
+      spy.restore()
+    })
+    it('updates history with first favicon', function () {
+      spy = sinon.spy(historyState, 'updateFavicon')
+      const tabId = 1
+      const favicon = 'https://clifton.io/scorpions-ftw.ico'
+      historyReducer(stateWithData, {
+        actionType: appConstants.APP_TAB_FAV_ICON_UPDATED,
+        tabId,
+        favIconUrls: [
+          favicon,
+          ''
+        ]
+      })
+      assert.equal(spy.callCount, 1)
+      assert.equal(spy.getCall(0).args[1].get('location'), 'https://clifton.io')
+      assert.equal(spy.getCall(0).args[2], favicon)
     })
   })
 })

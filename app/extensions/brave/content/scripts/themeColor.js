@@ -57,6 +57,10 @@
   }
 
   if(window.top == window.self) {
-    chrome.ipcRenderer.sendToHost('theme-color-computed', computeThemeColor())
+    chrome.ipcRenderer.send('dispatch-action', JSON.stringify([{
+      actionType: 'app-tab-computed-theme-color-updated',
+      location: window.location.href,
+      computedThemeColor: computeThemeColor()
+     }]))
   }
 })()

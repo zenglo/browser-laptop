@@ -42,7 +42,7 @@ class NavigationBar extends React.Component {
     const bookmarkDetail = currentWindow.get('bookmarkDetail', Immutable.Map())
     const mouseInTitlebar = currentWindow.getIn(['ui', 'mouseInTitlebar'])
     const title = activeFrame.get('title', '')
-    const loading = activeFrame.get('loading')
+    const loading = tabState.isLoading(state, activeTabId)
     const location = activeFrame.get('location', '')
     const locationId = getBaseUrl(location)
     const publisherId = ledgerState.getLocationProp(state, locationId, 'publisher')

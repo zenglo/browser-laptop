@@ -202,7 +202,7 @@ module.exports.cleanPerWindowData = (immutablePerWindowData, isShutdown) => {
       // Do not show the audio indicator until audio starts playing
       'audioMuted',
       'audioPlaybackActive',
-      // Let's not assume wknow anything about loading
+      // Obsolete - No longer used.
       'loading',
       // Always re-determine the security data
       'security',

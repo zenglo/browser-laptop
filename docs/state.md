@@ -171,7 +171,8 @@ AppStore
       partitionNumber: number, // optionally specifies a specific session
       skipSync: boolean, // Set for objects FETCHed by sync
       title: string,
-      themeColor: string
+      themeColor: string, // From meta tag's theme-color
+      computedThemeColor: string // Using a content script's heuristics
     }
   },
   ledger: {
@@ -471,6 +472,7 @@ AppStore
   tabs: [{
     // persistent properties
     active: boolean,  // whether the tab is selected
+    loading: boolean, // true if the tab is loading
     favIconUrl: string,
     id: number,
     index: number,  // the position of the tab in the window
@@ -630,7 +632,6 @@ WindowStore
     key: number,
     lastAccessedTime: datetime,
     lastZoomPercentage: number, // last value that was used for zooming
-    loading: boolean,
     location: string, // the currently navigated location
     modalPromptDetail: object,
     navbar: {

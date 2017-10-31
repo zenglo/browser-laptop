@@ -48,7 +48,6 @@ const {isFrameError, isAborted} = require('../../../common/lib/httpUtil')
 const {isFocused} = require('../../currentWindow')
 const debounce = require('../../../../js/lib/debounce')
 const locale = require('../../../../js/l10n')
-const imageUtil = require('../../../../js/lib/imageUtil')
 const historyUtil = require('../../../common/lib/historyUtil')
 
 // Constants
@@ -484,20 +483,6 @@ class Frame extends React.Component {
     this.webview.addEventListener('will-destroy', (e) => {
       this.onCloseFrame()
     }, { passive: true })
-    this.webview.addEventListener('page-favicon-updated', (e) => {
-      if (this.frame.isEmpty()) {
-        return
-      }
-      if (e.favicons &&
-          e.favicons.length > 0 &&
-          // Favicon changes lead to recalculation of top site data so only fire
-          // this when needed.  Some sites update favicons very frequently.
-          e.favicons[0] !== this.frame.get('icon')) {
-        imageUtil.getWorkingImageUrl(e.favicons[0], (error) => {
-          windowActions.setFavicon(this.frame, error ? null : e.favicons[0])
-        })
-      }
-    }, { passive: true })
     this.webview.addEventListener('show-autofill-settings', (e) => {
       appActions.createTabRequested({
         url: 'about:autofill',
@@ -526,13 +511,6 @@ class Frame extends React.Component {
             const description = [detail.type, detail.scriptUrl || this.props.provisionalLocation].join(': ')
             windowActions.setBlockedBy(this.props.tabId, 'fingerprintingProtection', description)
           }
-          break
-        case messages.THEME_COLOR_COMPUTED:
-          if (this.frame.isEmpty()) {
-            return
-          }
-          method = (computedThemeColor) =>
-            windowActions.setThemeColor(this.frame, undefined, computedThemeColor || null)
           break
         case messages.CONTEXT_MENU_OPENED:
           if (this.frame.isEmpty()) {
@@ -600,24 +578,11 @@ class Frame extends React.Component {
         return
       }
       windowActions.onWebviewLoadEnd(this.frame, url)
-      const parsedUrl = urlParse(url)
       if (!this.allowRunningWidevinePlugin()) {
         this.showWidevineNotification(() => {
         }, () => {
           appActions.loadURLRequested(this.props.tabId, this.props.provisionalLocation)
         })
-      }
-
-      const protocol = parsedUrl.protocol
-      const isError = this.props.aboutDetailsErrorCode
-      if (!this.props.isPrivate && (protocol === 'http:' || protocol === 'https:') && !isError && savePage && !inPageNav) {
-        // Register the site for recent history for navigation bar
-        // calling with setTimeout is an ugly hack for a race condition
-        // with setTitle. We either need to delay this call until the title is
-        // or add a way to update it
-        setTimeout(() => {
-          appActions.addHistorySite(historyUtil.getDetailFromFrame(this.frame))
-        }, 250)
       }
 
       if (url.startsWith(pdfjsOrigin)) {
@@ -768,16 +733,6 @@ class Frame extends React.Component {
         return
       }
       windowActions.setAudioPlaybackActive(this.frame, false)
-    })
-    this.webview.addEventListener('did-change-theme-color', ({themeColor}) => {
-      if (this.frame.isEmpty()) {
-        return
-      }
-      // Due to a bug in Electron, after navigating to a page with a theme color
-      // to a page without a theme color, the background is sent to us as black
-      // even know there is no background. To work around this we just ignore
-      // the theme color in that case and let the computed theme color take over.
-      windowActions.setThemeColor(this.frame, themeColor !== '#000000' ? themeColor : null)
     })
     this.webview.addEventListener('found-in-page', (e) => {
       if (this.frame.isEmpty()) {

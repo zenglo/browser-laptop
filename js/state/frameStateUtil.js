@@ -152,11 +152,6 @@ function isFrameSecure (frame) {
   }
 }
 
-function isFrameLoading (frame) {
-  frame = makeImmutable(frame)
-  return frame && frame.get('loading')
-}
-
 function startLoadTime (frame) {
   frame = makeImmutable(frame)
   return frame && frame.get('startLoadTime')
@@ -763,7 +758,6 @@ module.exports = {
   isAncestorFrameKey,
   isFrameKeyActive,
   isFrameSecure,
-  isFrameLoading,
   startLoadTime,
   endLoadTime,
   getHistory,

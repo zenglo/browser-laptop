@@ -427,6 +427,75 @@ describe('tabState unit tests', function () {
     })
   })
 
+  describe('updateFavIcon', function () {
+    it('updates favIconUrl tab state', function () {
+      const tabId = 1
+      const favicon = 'https://clifton.io/100-reasons-why-i-love-scorpions/favicon.ico'
+      const newAppState = tabState.updateFavIcon(twoTabsAppState, tabId, favicon)
+      const tab = newAppState.get('tabs').find((tab) => tab.get('tabId') === tabId)
+      assert.equal(tab.get('favIconUrl'), favicon)
+    })
+    it('overwrites an existing favIconUrl', function () {
+      const tabId = 1
+      const favicon = 'https://clifton.io/100-reasons-why-i-love-scorpions/favicon.ico'
+      const superScorpionFavIcon = 'https://clifton.io/100-reasons-why-i-love-scorpions-part-2/favicon.ico'
+      let state = tabState.updateFavIcon(twoTabsAppState, tabId, favicon)
+      state = tabState.updateFavIcon(twoTabsAppState, tabId, superScorpionFavIcon)
+      const tab = state.get('tabs').find((tab) => tab.get('tabId') === tabId)
+      assert.equal(tab.get('favIconUrl'), superScorpionFavIcon)
+    })
+  })
+
+  describe('getFavIconUrl', function () {
+    it('extracts a favIcon from tab state', function () {
+      const tabId = 1
+      const favicon = 'https://clifton.io/100-reasons-why-i-love-scorpions/favicon.ico'
+      const state = twoTabsAppState.setIn(['tabs', 0, 'favIconUrl'], favicon)
+      const actualFavIcon = tabState.getFavIconUrl(state, tabId)
+      assert.equal(actualFavIcon, favicon)
+    })
+    it('extracts a an empty string as the favicon from tab state if no favicon', function () {
+      const tabId = 1
+      const actualFavIcon = tabState.getFavIconUrl(twoTabsAppState, tabId)
+      assert.equal(actualFavIcon, '')
+    })
+  })
+
+  describe('getUrl', function () {
+    it('extracts a url from tab state', function () {
+      const tabId = 1
+      const url = 'https://clifton.io/100-reasons-why-i-love-scorpions'
+      const state = twoTabsAppState.setIn(['tabs', 0, 'url'], url)
+      const actualUrl = tabState.getUrl(state, tabId)
+      assert.equal(actualUrl, url)
+    })
+    it('extracts a an empty string as the url if there is no url', function () {
+      const tabId = 1
+      const actualUrl = tabState.getUrl(twoTabsAppState, tabId)
+      assert.equal(actualUrl, '')
+    })
+  })
+
+  describe('isLoading', function () {
+    it('extracts true for a loading tab', function () {
+      const tabId = 1
+      const state = twoTabsAppState.setIn(['tabs', 0, 'loading'], true)
+      const actuallyLoading = tabState.isLoading(state, tabId)
+      assert.equal(actuallyLoading, true)
+    })
+    it('extracts false when there is no loading data', function () {
+      const tabId = 1
+      const actuallyLoading = tabState.isLoading(twoTabsAppState, tabId)
+      assert.equal(actuallyLoading, false)
+    })
+
+    it('extracts a an empty string as the url if there is no url', function () {
+      const tabId = 1
+      const actualUrl = tabState.getUrl(twoTabsAppState, tabId)
+      assert.equal(actualUrl, '')
+    })
+  })
+
   describe('removeTabField', function () {
     it('removes the field specified', function () {
       const tab = Immutable.fromJS({

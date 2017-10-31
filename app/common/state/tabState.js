@@ -438,6 +438,30 @@ const tabState = {
     return tabState.updateTabValue(state, tabValue)
   },
 
+  updateProperty: (state, tabId, propertyName, propertyValue) => {
+    if (!tabId) {
+      return state
+    }
+    let tabValue = tabState.getByTabId(state, tabId)
+    if (!tabValue) {
+      return state
+    }
+    tabValue = tabValue.set(propertyName, propertyValue)
+    return tabState.updateTabValue(state, tabValue)
+  },
+
+  updateFavIcon: (state, tabId, favIconUrl) => {
+    return tabState.updateProperty(state, tabId, 'favIconUrl', favIconUrl)
+  },
+
+  updateThemeColor: (state, tabId, themeColor) => {
+    return tabState.updateProperty(state, tabId, 'themeColor', themeColor)
+  },
+
+  updateComputedThemeColor: (state, tabId, computedThemeColor) => {
+    return tabState.updateProperty(state, tabId, 'computedThemeColor', computedThemeColor)
+  },
+
   getTabPropertyByTabId: (state, tabId, property, defaultValue = null) => {
     state = validateState(state)
     tabId = validateId('tabId', tabId)
@@ -448,6 +472,10 @@ const tabState = {
     assert.ok(tab, `Could not find tab for ${tabId}`)
     const val = tab.get(property)
     return val == null ? defaultValue : val
+  },
+
+  getUrl: (state, tabId) => {
+    return tabState.getTabPropertyByTabId(state, tabId, 'url', '')
   },
 
   getWindowId: (state, tabId) => {
@@ -561,8 +589,11 @@ const tabState = {
   },
 
   isLoading: (state, tabId) => {
-    const frame = tabState.getFrameByTabId(state, tabId)
-    return frame ? frameStateUtil.isFrameLoading(frame) : null
+    return tabState.getTabPropertyByTabId(state, tabId, 'loading', false)
+  },
+
+  getFavIconUrl: (state, tabId) => {
+    return tabState.getTabPropertyByTabId(state, tabId, 'favIconUrl', '')
   },
 
   startLoadTime: (state, tabId) => {

@@ -9,6 +9,7 @@ const settings = require('../../../js/constants/settings')
 const partitionState = require('../../common/state/tabContentState/partitionState')
 const privateState = require('../../common/state/tabContentState/privateState')
 const closeState = require('../../common/state/tabContentState/closeState')
+const historyState = require('../../common/state/historyState')
 const frameStateUtil = require('../../../js/state/frameStateUtil')
 
 // Utils
@@ -22,30 +23,29 @@ const {getSetting} = require('../../../js/settings')
 const {intersection} = require('../../renderer/components/styles/global')
 const {theme} = require('../../renderer/components/styles/theme')
 
-module.exports.getThemeColor = (state, frameKey) => {
-  const frame = frameStateUtil.getFrameByKey(state, frameKey)
+module.exports.getThemeColor = (state, windowState, frameKey) => {
+  const frame = frameStateUtil.getFrameByKey(windowState, frameKey)
 
   if (frame == null) {
     return false
   }
-
-  return (
-    getSetting(settings.PAINT_TABS) &&
-    (frame.get('themeColor') || frame.get('computedThemeColor'))
-  )
+  const location = frame.get('location')
+  const themeColor = historyState.getThemeColor(state, location) ||
+    historyState.getComputedThemeColor(state, location)
+  return getSetting(settings.PAINT_TABS) && themeColor
 }
 
-module.exports.getTabIconColor = (state, frameKey) => {
-  const frame = frameStateUtil.getFrameByKey(state, frameKey)
+module.exports.getTabIconColor = (state, windowState, frameKey) => {
+  const frame = frameStateUtil.getFrameByKey(windowState, frameKey)
 
   if (frame == null) {
     return ''
   }
 
   const isPrivate = frame.get('isPrivate')
-  const isActive = frameStateUtil.isFrameKeyActive(state, frameKey)
-  const hoverState = frameStateUtil.getTabHoverState(state, frameKey)
-  const themeColor = frame.get('themeColor') || frame.get('computedThemeColor')
+  const isActive = frameStateUtil.isFrameKeyActive(windowState, frameKey)
+  const hoverState = frameStateUtil.getTabHoverState(windowState, frameKey)
+  const themeColor = module.exports.getThemeColor(state, windowState, frameKey)
   const activeNonPrivateTab = !isPrivate && isActive
   const isPrivateTab = isPrivate && (isActive || hoverState)
   const defaultColor = isPrivateTab ? 'white' : 'black'
@@ -56,32 +56,32 @@ module.exports.getTabIconColor = (state, frameKey) => {
     : defaultColor
 }
 
-module.exports.checkIfTextColor = (state, frameKey, color) => {
-  const frame = frameStateUtil.getFrameByKey(state, frameKey)
+module.exports.checkIfTextColor = (state, windowState, frameKey, color) => {
+  const frame = frameStateUtil.getFrameByKey(windowState, frameKey)
 
   if (frame == null) {
     return false
   }
 
-  return module.exports.getTabIconColor(state, frameKey) === color
+  return module.exports.getTabIconColor(state, windowState, frameKey) === color
 }
 
-module.exports.showTabEndIcon = (state, frameKey) => {
-  const frame = frameStateUtil.getFrameByKey(state, frameKey)
+module.exports.showTabEndIcon = (windowState, frameKey) => {
+  const frame = frameStateUtil.getFrameByKey(windowState, frameKey)
 
   if (frame == null) {
     return false
   }
 
   return (
-    !closeState.hasFixedCloseIcon(state, frameKey) &&
-    !closeState.hasRelativeCloseIcon(state, frameKey) &&
-    !isEntryIntersected(state, 'tabs', intersection.at40)
+    !closeState.hasFixedCloseIcon(windowState, frameKey) &&
+    !closeState.hasRelativeCloseIcon(windowState, frameKey) &&
+    !isEntryIntersected(windowState, 'tabs', intersection.at40)
   )
 }
 
-module.exports.addExtraGutterToTitle = (state, frameKey) => {
-  const frame = frameStateUtil.getFrameByKey(state, frameKey)
+module.exports.addExtraGutterToTitle = (windowState, frameKey) => {
+  const frame = frameStateUtil.getFrameByKey(windowState, frameKey)
 
   if (frame == null) {
     return false
@@ -90,30 +90,30 @@ module.exports.addExtraGutterToTitle = (state, frameKey) => {
   return frameStateUtil.frameLocationMatch(frame, 'about:newtab')
 }
 
-module.exports.centralizeTabIcons = (state, frameKey, isPinned) => {
-  const frame = frameStateUtil.getFrameByKey(state, frameKey)
+module.exports.centralizeTabIcons = (windowState, frameKey, isPinned) => {
+  const frame = frameStateUtil.getFrameByKey(windowState, frameKey)
 
   if (frame == null) {
     return false
   }
 
-  return isPinned || isEntryIntersected(state, 'tabs', intersection.at40)
+  return isPinned || isEntryIntersected(windowState, 'tabs', intersection.at40)
 }
 
-module.exports.getTabEndIconBackgroundColor = (state, frameKey) => {
-  const frame = frameStateUtil.getFrameByKey(state, frameKey)
+module.exports.getTabEndIconBackgroundColor = (state, windowState, frameKey) => {
+  const frame = frameStateUtil.getFrameByKey(windowState, frameKey)
 
   if (frame == null) {
     return false
   }
 
-  const themeColor = module.exports.getThemeColor(state, frameKey)
-  const isPrivate = privateState.isPrivateTab(state, frameKey)
-  const isPartition = partitionState.isPartitionTab(state, frameKey)
-  const isHover = frameStateUtil.getTabHoverState(state, frameKey)
-  const isActive = frameStateUtil.isFrameKeyActive(state, frameKey)
-  const hasCloseIcon = closeState.showCloseTabIcon(state, frameKey)
-  const isIntersecting = isEntryIntersected(state, 'tabs', intersection.at40)
+  const themeColor = module.exports.getThemeColor(state, windowState, frameKey)
+  const isPrivate = privateState.isPrivateTab(windowState, frameKey)
+  const isPartition = partitionState.isPartitionTab(windowState, frameKey)
+  const isHover = frameStateUtil.getTabHoverState(windowState, frameKey)
+  const isActive = frameStateUtil.isFrameKeyActive(windowState, frameKey)
+  const hasCloseIcon = closeState.showCloseTabIcon(windowState, frameKey)
+  const isIntersecting = isEntryIntersected(windowState, 'tabs', intersection.at40)
 
   let backgroundColor = theme.tab.background
 

@@ -121,9 +121,6 @@ describe('Window store unit tests', function () {
 
       describe('update loading UI', function () {
         describe('for frames', function () {
-          it('sets loading=true', function () {
-            assert.equal(windowState.getIn(['frames', 0, 'loading']), true)
-          })
           it('sets startLoadTime to current time', function () {
             assert.deepEqual(
               windowState.getIn(['frames', 0, 'startLoadTime']),

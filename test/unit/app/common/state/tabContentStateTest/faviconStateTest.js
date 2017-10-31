@@ -11,17 +11,18 @@ const fakeElectron = require('../../../../lib/fakeElectron')
 const {intersection} = require('../../../../../../app/renderer/components/styles/global')
 
 const frameKey = 1
+const tabId = 1
 const index = 0
 let defaultState = Immutable.fromJS({
   activeFrameKey: frameKey,
   frames: [{
     key: frameKey,
-    tabId: 1,
+    tabId,
     location: 'http://brave.com'
   }],
   tabs: [{
     key: frameKey,
-    index: index
+    index
   }],
   framesInternal: {
     index: { 1: 0 },
@@ -77,22 +78,24 @@ describe('faviconState unit tests', function () {
   })
 
   describe('getFavicon', function () {
-    it('returns false if frame is null/undefined', function * () {
-      assert.equal(faviconState.getFavicon(), false)
+    it('returns false if tabId is not known', function * () {
+      assert.equal(faviconState.getFavicon(defaultState, 2), false)
     })
 
     it('returns false if loading icon is visible', function * () {
-      const favicon = 'fred_water.png'
-      const state = defaultState.mergeIn(['frames', index], { loading: true, icon: favicon })
+      const favIconUrl = 'fred_water.png'
+      const state = defaultState
+        .mergeIn(['tabs', index], { favIconUrl, loading: true })
       const result = faviconState.getFavicon(state, frameKey)
       assert.equal(result, false)
     })
 
     it('returns the favicon if loading is not visible', function * () {
-      const favicon = 'fred_water_rlz.png'
-      const state = defaultState.mergeIn(['frames', index], { loading: false, icon: favicon })
+      const favIconUrl = 'fred_water_rlz.png'
+      const state = defaultState
+        .mergeIn(['tabs', index], { favIconUrl, loading: false })
       const result = faviconState.getFavicon(state, frameKey)
-      assert.equal(result, favicon)
+      assert.equal(result, favIconUrl)
     })
   })
 
@@ -104,31 +107,31 @@ describe('faviconState unit tests', function () {
     it('returns false if source is about page', function * () {
       const state = defaultState
         .setIn(['frames', index, 'location'], 'about:blank')
-      const result = faviconState.showLoadingIcon(state, frameKey)
+      const result = faviconState.showLoadingIcon(state, tabId)
       assert.equal(result, false)
     })
 
     it('returns true if source is not about page', function * () {
-      const state = defaultState.setIn(['frames', index, 'loading'], true)
-      const result = faviconState.showLoadingIcon(state, frameKey)
+      const state = defaultState.setIn(['tabs', index, 'loading'], true)
+      const result = faviconState.showLoadingIcon(state, tabId)
       assert.equal(result, true)
     })
 
     it('returns false if page is not loading', function * () {
-      const state = defaultState.setIn(['frames', index, 'loading'], false)
-      const result = faviconState.showLoadingIcon(state, frameKey)
+      const state = defaultState.setIn(['tabs', index, 'loading'], false)
+      const result = faviconState.showLoadingIcon(state, tabId)
       assert.equal(result, false)
     })
 
     it('returns false if loading is undefined', function * () {
-      const state = defaultState.setIn(['frames', index, 'loading'], undefined)
-      const result = faviconState.showLoadingIcon(state, frameKey)
+      const state = defaultState.setIn(['tabs', index, 'loading'], undefined)
+      const result = faviconState.showLoadingIcon(state, tabId)
       assert.equal(result, false)
     })
 
     it('returns true if page is loading', function * () {
-      const state = defaultState.setIn(['frames', index, 'loading'], true)
-      const result = faviconState.showLoadingIcon(state, frameKey)
+      const state = defaultState.setIn(['tabs', index, 'loading'], true)
+      const result = faviconState.showLoadingIcon(state, tabId)
       assert.equal(result, true)
     })
   })

@@ -611,37 +611,6 @@ const windowActions = {
   },
 
   /**
-   * Dispatches a message to indicate that the theme color has changed for a page
-   *
-   * @param {Object} frameProps - Properties of the frame in question
-   * @param {string} themeColor - Theme color of the frame
-   * @param {string} computedThemeColor - Computed theme color of the
-   *   frame which is used if no frame color is present
-   */
-  setThemeColor: function (frameProps, themeColor, computedThemeColor) {
-    dispatch({
-      actionType: windowConstants.WINDOW_SET_THEME_COLOR,
-      frameProps,
-      themeColor,
-      computedThemeColor
-    })
-  },
-
-  /**
-   * Dispatches a message to indicate that the favicon has changed
-   *
-   * @param {Object} frameProps - Properties of the frame in question
-   * @param {string} favicon - A url to the favicon to use
-   */
-  setFavicon: function (frameProps, favicon) {
-    dispatch({
-      actionType: windowConstants.WINDOW_SET_FAVICON,
-      frameProps,
-      favicon
-    })
-  },
-
-  /**
    * Dispatches a message to store the last zoom percentage.
    * This is mainly just used to trigger updates throughout React.
    *

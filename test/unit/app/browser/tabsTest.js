@@ -56,7 +56,14 @@ describe('tabs API unit tests', function () {
         pinned: false,
         windowId: 2,
         active: true
-      }]
+      }],
+      tabsInternal: {
+        index: {
+          1: 0,
+          2: 1,
+          3: 2
+        }
+      }
     })
 
     this.appStore = {
@@ -79,6 +86,7 @@ describe('tabs API unit tests', function () {
           session: {
             partition: 'default'
           },
+          isLoading: () => false,
           tabValue: () =>
             this.state.get('tabs').find((tab) => tab.get('tabId') === tabId),
           isDestroyed: () => false,
@@ -388,6 +396,13 @@ describe('tabs API unit tests', function () {
 
   describe.skip('getHistoryEntries', function () {
     it('todo', function () {
+    })
+  })
+  describe('updateFavIcon', function () {
+    it('uses the first icon', function () {
+      const favicon = 'https://clifton.io/top-10-socrpion-hunting-methods/favicon.ico'
+      const newState = tabs.updateFavIcon(this.state, 1, Immutable.fromJS([favicon, '']))
+      assert.equal(newState.getIn(['tabs', 0, 'favIconUrl']), favicon)
     })
   })
 })

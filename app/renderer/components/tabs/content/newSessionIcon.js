@@ -36,7 +36,7 @@ class NewSessionIcon extends React.Component {
     props.isPinned = tabState.isTabPinned(state, tabId)
     props.showPartitionIcon = partitionState.showPartitionIcon(currentWindow, frameKey)
     props.isActive = frameStateUtil.isFrameKeyActive(currentWindow, frameKey)
-    props.textIsWhite = tabUIState.checkIfTextColor(currentWindow, frameKey, 'white')
+    props.textIsWhite = tabUIState.checkIfTextColor(state, currentWindow, frameKey, 'white')
     props.partitionNumber = partitionState.getMaxAllowedPartitionNumber(currentWindow, frameKey)
     props.tabId = tabId
 

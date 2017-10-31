@@ -104,6 +104,33 @@ const tabsReducer = (state, action, immutableAction) => {
       state = tabs.closeTabPage(state, windowId, tabPageIndex)
       break
     }
+    case appConstants.APP_TAB_FAV_ICON_UPDATED: {
+      const tabId = action.get('tabId')
+      const favIconUrls = action.get('favIconUrls')
+      state = tabs.updateFavIcon(state, tabId, favIconUrls)
+      break
+    }
+
+    case appConstants.APP_TAB_THEME_COLOR_UPDATED: {
+      const tabId = action.get('tabId')
+      const themeColor = action.get('themeColor')
+      const url = tabState.getUrl(state, tabId)
+      console.log('app-tab-theme-color-updated:', url, tabId, themeColor)
+      // Due to a bug in Electron, after navigating to a page with a theme color
+      // to a page without a theme color, the background is sent to us as black
+      // even know there is no background. To work around this we just ignore
+      // the theme color in that case and let the computed theme color take over.
+      // TODO: This is moved over from frame.js, is it still needed?
+      state = tabs.updateThemeColor(state, tabId, themeColor !== '#000000' ? themeColor : null)
+      break
+    }
+    case appConstants.APP_TAB_COMPUTED_THEME_COLOR_UPDATED: {
+      const tabId = action.get('tabId')
+      const computedThemeColor = action.get('computedThemeColor')
+      console.log('-----computed theme color:', action.toJS())
+      state = tabs.updateComputedThemeColor(state, tabId, computedThemeColor)
+      break
+    }
     case appConstants.APP_CLOSE_TABS_TO_LEFT_MENU_ITEM_CLICKED: {
       const tabId = action.get('tabId')
       state = tabs.closeTabsToLeft(state, tabId)

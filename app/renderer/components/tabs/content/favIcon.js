@@ -35,10 +35,10 @@ class Favicon extends React.Component {
 
     const props = {}
     props.isPinned = tabState.isTabPinned(state, tabId)
-    props.favicon = faviconState.getFavicon(currentWindow, frameKey)
+    props.favicon = faviconState.getFavicon(state, tabId)
+    props.tabLoading = faviconState.showLoadingIcon(state, tabId)
     props.showIcon = faviconState.showFavicon(currentWindow, frameKey)
-    props.tabLoading = faviconState.showLoadingIcon(currentWindow, frameKey)
-    props.tabIconColor = tabUIState.getTabIconColor(currentWindow, frameKey)
+    props.tabIconColor = tabUIState.getTabIconColor(state, currentWindow, frameKey)
     props.showIconWithLessMargin = faviconState.showIconWithLessMargin(currentWindow, frameKey)
     props.showIconAtReducedSize = faviconState.showFaviconAtReducedSize(currentWindow, frameKey)
     props.tabId = tabId

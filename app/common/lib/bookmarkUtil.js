@@ -73,9 +73,26 @@ const getDetailFromFrame = (frame) => {
     location: frame.get('location'),
     title: frame.get('title'),
     partitionNumber: frame.get('partitionNumber'),
-    favicon: frame.get('icon'),
-    themeColor: frame.get('themeColor') || frame.get('computedThemeColor')
+    favicon: frame.get('icon')
   })
+}
+
+const getDetailFromTab = (tab) => {
+  const result = {
+    location: tab.get('url'),
+    title: tab.get('title'),
+    partitionNumber: tab.get('partitionNumber'),
+    favicon: tab.get('favIconUrl')
+  }
+
+  if (tab.get('themeColor') != null) {
+    result.themeColor = tab.get('themeColor')
+  }
+
+  if (tab.get('computedThemeColor') != null) {
+    result.themeColor = tab.get('computedThemeColor')
+  }
+  return makeImmutable(result)
 }
 
 /**
@@ -175,7 +192,8 @@ const buildBookmark = (state, bookmarkDetail) => {
       dataItem = makeImmutable({
         partitionNumber: tab.getIn(['frame', 'partitionNumber'], 0),
         favicon: tab.getIn(['frame', 'icon']),
-        themeColor: tab.getIn(['frame', 'themeColor'])
+        themeColor: tab.getIn(['themeColor']),
+        computedThemeColor: tab.getIn(['computedThemeColor'])
       })
     } else {
       // check if bookmark is in top sites
@@ -196,6 +214,7 @@ const buildBookmark = (state, bookmarkDetail) => {
     objectId: bookmarkDetail.get('objectId', null),
     favicon: dataItem.get('favicon'),
     themeColor: dataItem.get('themeColor'),
+    computedThemeColor: dataItem.get('computedThemeColor'),
     type: siteTags.BOOKMARK,
     key: key,
     skipSync: bookmarkDetail.get('skipSync', null),
@@ -227,6 +246,7 @@ module.exports = {
   showFavicon,
   getDNDBookmarkData,
   getDetailFromFrame,
+  getDetailFromTab,
   isLocationBookmarked,
   toCreateProperties,
   isBookmark,

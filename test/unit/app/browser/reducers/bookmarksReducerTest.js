@@ -35,7 +35,15 @@ describe('bookmarksReducer unit test', function () {
       bookmarkLocation: {}
     },
     historySites: {},
-    tabs: []
+    tabs: [{
+      tabId: 1,
+      url: 'https://clifton.io'
+    }],
+    tabsInternal: {
+      index: {
+        1: 0
+      }
+    }
   })
 
   const stateWithData = Immutable.fromJS({
@@ -59,6 +67,7 @@ describe('bookmarksReducer unit test', function () {
         partitionNumber: 0,
         objectId: null,
         themeColor: undefined,
+        computedThemeColor: undefined,
         type: siteTags.BOOKMARK
       },
       'https://clifton.io/|0|0': {
@@ -70,6 +79,7 @@ describe('bookmarksReducer unit test', function () {
         partitionNumber: 0,
         objectId: null,
         themeColor: undefined,
+        computedThemeColor: undefined,
         type: siteTags.BOOKMARK
       },
       'https://brianbondy.com/|0|1': {
@@ -81,6 +91,7 @@ describe('bookmarksReducer unit test', function () {
         partitionNumber: 0,
         objectId: null,
         themeColor: undefined,
+        computedThemeColor: undefined,
         type: siteTags.BOOKMARK
       }
     },
@@ -120,7 +131,15 @@ describe('bookmarksReducer unit test', function () {
       }
     },
     historySites: {},
-    tabs: []
+    tabs: [{
+      tabId: 1,
+      url: 'https://clifton.io'
+    }],
+    tabsInternal: {
+      index: {
+        1: 0
+      }
+    }
   })
 
   const fakeTextCalc = {
@@ -205,6 +224,7 @@ describe('bookmarksReducer unit test', function () {
             skipSync: null,
             objectId: null,
             themeColor: undefined,
+            computedThemeColor: undefined,
             title: 'Clifton',
             type: siteTags.BOOKMARK,
             key: 'https://clifton.io/|0|0',
@@ -259,6 +279,7 @@ describe('bookmarksReducer unit test', function () {
             skipSync: null,
             objectId: null,
             themeColor: undefined,
+            computedThemeColor: undefined,
             title: 'Clifton',
             type: siteTags.BOOKMARK,
             key: 'https://clifton.io/|0|0',
@@ -272,6 +293,7 @@ describe('bookmarksReducer unit test', function () {
             skipSync: null,
             objectId: null,
             themeColor: undefined,
+            computedThemeColor: undefined,
             title: 'Bondy',
             type: siteTags.BOOKMARK,
             key: 'https://brianbondy.com/|0|0',
@@ -383,6 +405,7 @@ describe('bookmarksReducer unit test', function () {
           partitionNumber: 0,
           skipSync: null,
           themeColor: undefined,
+          computedThemeColor: undefined,
           type: 'bookmark',
           width: 0
         },
@@ -665,6 +688,28 @@ describe('bookmarksReducer unit test', function () {
       const expectedState = stateWithData
         .setIn(['bookmarks', 'https://brianbondy.com/|0|1', 'width'], 20)
       assert.deepEqual(newState.toJS(), expectedState.toJS())
+    })
+  })
+  describe('APP_TAB_FAV_ICON_UPDATED', function () {
+    let spy
+    afterEach(function () {
+      spy.restore()
+    })
+    it('updates bookmark with first favicon', function () {
+      spy = sinon.spy(bookmarksState, 'updateFavicon')
+      const tabId = 1
+      const favicon = 'https://clifton.io/scorpions-ftw.ico'
+      bookmarksReducer(stateWithData, {
+        actionType: appConstants.APP_TAB_FAV_ICON_UPDATED,
+        tabId,
+        favIconUrls: [
+          favicon,
+          ''
+        ]
+      })
+      assert.equal(spy.callCount, 1)
+      assert.equal(spy.getCall(0).args[1], 'https://clifton.io')
+      assert.equal(spy.getCall(0).args[2], favicon)
     })
   })
 })

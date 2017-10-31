@@ -301,9 +301,7 @@ const doAction = (action) => {
           isSecure: null,
           runInsecureContent: false
         })
-        // Update loading UI
         windowState = windowState.mergeIn(statePath('frames'), {
-          loading: true,
           provisionalLocation: action.location,
           startLoadTime: new Date().getTime(),
           endLoadTime: null
@@ -317,7 +315,6 @@ const doAction = (action) => {
       }
     case windowConstants.WINDOW_WEBVIEW_LOAD_END:
       windowState = windowState.mergeIn(['frames', frameStateUtil.getFrameIndex(windowState, action.frameProps.get('key'))], {
-        loading: false,
         endLoadTime: new Date().getTime(),
         history: addToHistory(action.frameProps)
       })
@@ -389,17 +386,6 @@ const doAction = (action) => {
             hrefPreview: action.href,
             showOnRight: action.showOnRight
           })
-        }
-        break
-      }
-    case windowConstants.WINDOW_SET_THEME_COLOR:
-      {
-        const frameKey = action.frameProps.get('key')
-        if (action.themeColor !== undefined) {
-          windowState = windowState.setIn(frameStateUtil.frameStatePath(windowState, frameKey).concat(['themeColor']), action.themeColor)
-        }
-        if (action.computedThemeColor !== undefined) {
-          windowState = windowState.setIn(frameStateUtil.frameStatePath(windowState, frameKey).concat(['computedThemeColor']), action.computedThemeColor)
         }
         break
       }
@@ -516,9 +502,6 @@ const doAction = (action) => {
       break
     case windowConstants.WINDOW_SET_AUDIO_PLAYBACK_ACTIVE:
       windowState = windowState.setIn(['frames', frameStateUtil.getFrameIndex(windowState, action.frameProps.get('key')), 'audioPlaybackActive'], action.audioPlaybackActive)
-      break
-    case windowConstants.WINDOW_SET_FAVICON:
-      windowState = windowState.setIn(['frames', frameStateUtil.getFrameIndex(windowState, action.frameProps.get('key')), 'icon'], action.favicon)
       break
     case windowConstants.WINDOW_SET_LAST_ZOOM_PERCENTAGE:
       windowState = windowState.setIn(['frames', frameStateUtil.getFrameIndex(windowState, action.frameProps.get('key')), 'lastZoomPercentage'], action.percentage)

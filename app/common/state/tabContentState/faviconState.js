@@ -6,6 +6,7 @@
 const {isSourceAboutUrl} = require('../../../../js/lib/appUrlUtil')
 const frameStateUtil = require('../../../../js/state/frameStateUtil')
 const {isEntryIntersected} = require('../../../../app/renderer/lib/observerUtil')
+const tabState = require('../tabState')
 
 // Styles
 const {intersection} = require('../../../renderer/components/styles/global')
@@ -38,33 +39,15 @@ module.exports.showFavicon = (state, frameKey) => {
   return !isNewTabPage
 }
 
-module.exports.getFavicon = (state, frameKey) => {
-  const frame = frameStateUtil.getFrameByKey(state, frameKey)
-  const isLoadingVisible = module.exports.showLoadingIcon(state, frameKey)
-
-  if (frame == null) {
+module.exports.getFavicon = (state, tabId) => {
+  if (module.exports.showLoadingIcon(state, tabId)) {
     return ''
   }
-
-  return !isLoadingVisible && frame.get('icon')
+  return tabState.getFavIconUrl(state, tabId)
 }
 
-module.exports.showLoadingIcon = (state, frameKey) => {
-  const frame = frameStateUtil.getFrameByKey(state, frameKey)
-
-  if (frame == null) {
-    return false
-  }
-
-  if (frame.get('loading') == null) {
-    return false
-  }
-
-  return (
-    !isSourceAboutUrl(frame.get('location')) &&
-    frame.get('loading')
-  )
-}
+module.exports.showLoadingIcon = (state, tabId) =>
+  !isSourceAboutUrl(tabState.getLocation(state, tabId)) && tabState.isLoading(state, tabId)
 
 module.exports.showIconWithLessMargin = (state, frameKey) => {
   const frame = frameStateUtil.getFrameByKey(state, frameKey)

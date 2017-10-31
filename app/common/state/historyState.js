@@ -64,7 +64,20 @@ const historyState = {
     return state.set(STATE_SITES.HISTORY_SITES, Immutable.Map())
   },
 
-  updateFavicon: (state, siteDetails, favIcon) => {
+  getLocationProperty: (state, location, propName, defaultValue) => {
+    const historyKey = historyUtil.getKey(Immutable.fromJS({ location }))
+    if (historyKey == null) {
+      return defaultValue
+    }
+
+    let historyItem = historyState.getSite(state, historyKey)
+    if (historyItem.isEmpty()) {
+      return defaultValue
+    }
+    return historyItem.get(propName)
+  },
+
+  updateProperty: (state, siteDetails, propName, propValue) => {
     const historyKey = historyUtil.getKey(siteDetails)
     if (historyKey == null) {
       return state
@@ -75,9 +88,32 @@ const historyState = {
       return state
     }
 
-    historyItem = historyItem.set('favicon', favIcon)
-
+    historyItem = historyItem.set(propName, propValue)
     return state.setIn([STATE_SITES.HISTORY_SITES, historyKey], historyItem)
+  },
+
+  updateFavicon: (state, siteDetails, favIcon) => {
+    return historyState.updateProperty(state, siteDetails, 'favicon', favIcon)
+  },
+
+  updateTitle: (state, siteDetails, title) => {
+    return historyState.updateProperty(state, siteDetails, 'title', title)
+  },
+
+  updateThemeColor: (state, siteDetails, themeColor) => {
+    return historyState.updateProperty(state, siteDetails, 'themeColor', themeColor)
+  },
+
+  updateComputedThemeColor: (state, siteDetails, computedThemeColor) => {
+    return historyState.updateProperty(state, siteDetails, 'computedThemeColor', computedThemeColor)
+  },
+
+  getThemeColor: (state, location) => {
+    return historyState.getLocationProperty(state, location, 'themeColor')
+  },
+
+  getComputedThemeColor: (state, location) => {
+    return historyState.getLocationProperty(state, location, 'computedThemeColor')
   }
 }
 

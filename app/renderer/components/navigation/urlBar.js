@@ -453,7 +453,7 @@ class UrlBar extends React.Component {
     props.displayURL = displayURL
     props.startLoadTime = activeFrame.get('startLoadTime')
     props.endLoadTime = activeFrame.get('endLoadTime')
-    props.loading = activeFrame.get('loading')
+    props.loading = tabState.isLoading(state, activeTabId)
     props.showDisplayTime = !props.titleMode && props.displayURL === location
     props.showNoScriptInfo = enableNoScript && scriptsBlocked && scriptsBlocked.size
     props.isActive = urlbar.get('active')

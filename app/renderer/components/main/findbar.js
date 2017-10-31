@@ -27,6 +27,9 @@ const {getSetting} = require('../../../../js/settings')
 const debounce = require('../../../../js/lib/debounce')
 const cx = require('../../../../js/lib/classSet')
 
+// State
+const historyState = require('../../../common/state/historyState')
+
 // Styles
 const globalStyles = require('../styles/global')
 const commonStyles = require('../styles/commonStyles')
@@ -215,7 +218,8 @@ class FindBar extends React.Component {
     const props = {}
     // used in renderer
     props.backgroundColor = getSetting(settings.PAINT_TABS) &&
-      (activeFrame.get('themeColor') || activeFrame.get('computedThemeColor'))
+      (historyState.getThemeColor(state, activeFrame.get('location')) ||
+        historyState.getComputedThemeColor(state, activeFrame.get('location')))
     props.textColor = props.backgroundColor && getTextColorForBackground(props.backgroundColor)
     props.numberOfMatches = activeFrame.getIn(['findDetail', 'numberOfMatches'], -1)
     props.activeMatchOrdinal = activeFrame.getIn(['findDetail', 'activeMatchOrdinal'], -1)

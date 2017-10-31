@@ -179,6 +179,43 @@ const appActions = {
   },
 
   /**
+   * Favicon for a tab has changed
+   * @param {Number} tabId of the tab who's favIcon changed
+   * @param {Array.<string>} favIconUrls
+   */
+  tabFavIconUpdated: function (tabId, favIconUrls) {
+    dispatch({
+      actionType: appConstants.APP_TAB_FAV_ICON_UPDATED,
+      tabId,
+      favIconUrls
+    })
+  },
+
+  /**
+   * Title for a tab has changed
+   * @param {Number} tabId of the tab who's title changed
+   */
+  tabTitleUpdated: function (tabId, title) {
+    dispatch({
+      actionType: appConstants.APP_TAB_TITLE_UPDATED,
+      tabId,
+      title
+    })
+  },
+
+  /**
+   * Theme color for a tab has changed
+   * @param {Number} tabId of the tab who's title changed
+   */
+  tabThemeColorUpdated: function (tabId, themeColor) {
+    dispatch({
+      actionType: appConstants.APP_TAB_THEME_COLOR_UPDATED,
+      tabId,
+      themeColor
+    })
+  },
+
+  /**
    * Menu item for closing tabs to the left has been clicked.
    * @param {Number} tabId The tabId woh's tabs to the left should be closed.
    */

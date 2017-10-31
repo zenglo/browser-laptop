@@ -5,6 +5,7 @@
 const appActions = require('../../js/actions/appActions')
 const windowActions = require('../../js/actions/windowActions')
 const tabActions = require('../common/actions/tabActions')
+const historyUtil = require('../common/lib/historyUtil')
 const config = require('../../js/constants/config')
 const Immutable = require('immutable')
 const tabState = require('../common/state/tabState')
@@ -59,9 +60,6 @@ const getTabValue = function (tabId) {
   let tab = getWebContents(tabId)
   if (tab && !tab.isDestroyed()) {
     let tabValue = makeImmutable(tab.tabValue())
-    tabValue = tabValue.set('canGoBack', tab.canGoBack())
-    tabValue = tabValue.set('canGoForward', tab.canGoForward())
-    tabValue = tabValue.set('guestInstanceId', tab.guestInstanceId)
     tabValue = tabValue.set('partition', tab.session.partition)
     tabValue = tabValue.set('partitionNumber', getPartitionNumber(tab.session.partition))
     return tabValue.set('tabId', tabId)
@@ -524,6 +522,7 @@ const api = {
           let tabValue = getTabValue(tabId)
           if (tabValue) {
             const windowId = tabValue.get('windowId')
+            console.log('we have a theme color of: ', tabValue.get('themeColor'), tabValue.get('url'))
             tabActions.didStartNavigation(tabId, createNavigationState(navigationHandle, controller), windowId)
           }
         }
@@ -539,6 +538,19 @@ const api = {
           if (tabValue) {
             const windowId = tabValue.get('windowId')
             tabActions.didFinishNavigation(tabId, createNavigationState(navigationHandle, controller), windowId)
+            // TODO: This is an intermediate refactor moving from renderer frame.js, we should be removing
+            // addHistorySite completely and just use didFinishNavigation inside of the history reducer.
+            const parsedURL = muon.url.parse(tabValue.get('url'))
+            const protocol = parsedURL.protocol
+            // TODO: This is moved over from frame.js, but maybe we should consider showing
+            // file:/// urls as well here.  chrome-extension pages for Brave built-in would
+            // need extra changes if we just removed the check completely.
+            if (!tabValue.get('incognito') &&
+                (protocol === 'http:' || protocol === 'https:') &&
+                navigationHandle.shouldUpdateHistory()) {
+              console.log('add history:', tabValue.toJS())
+              appActions.addHistorySite(historyUtil.getDetailFromTab(tabValue))
+            }
           }
         }
       })
@@ -600,6 +612,19 @@ const api = {
         if (resourceType === 'mainFrame') {
           windowActions.gotResponseDetails(tabId, {status, newURL, originalURL, httpResponseCode, requestMethod, referrer, resourceType})
         }
+      })
+
+      tab.on('page-favicon-updated', (e, favIconUrls) => {
+        appActions.tabFavIconUpdated(tabId, favIconUrls)
+      })
+
+      tab.on('page-title-updated', (e, title) => {
+        appActions.tabTitleUpdated(tabId, title)
+      })
+
+      tab.on('did-change-theme-color', (e, themeColor) => {
+        console.log('did-change-theme-color')
+        appActions.tabThemeColorUpdated(tabId, themeColor)
       })
 
       tab.once('will-destroy', () => {
@@ -1099,6 +1124,20 @@ const api = {
     return state
   },
 
+  updateFavIcon: (state, tabId, favIconUrls) => {
+    return tabState.updateFavIcon(state, tabId, favIconUrls.size > 0
+      ? favIconUrls.get(0)
+      : '')
+  },
+
+  updateThemeColor: (state, tabId, themeColor) => {
+    return tabState.updateThemeColor(state, tabId, themeColor)
+  },
+
+  updateComputedThemeColor: (state, tabId, computedThemeColor) => {
+    return tabState.updateComputedThemeColor(state, tabId, computedThemeColor)
+  },
+
   closeTabsToLeft: (state, tabId) => {
     const tabValue = tabState.getByTabId(state, tabId)
     if (!tabValue) {
@@ -1169,7 +1208,8 @@ const api = {
           index: tab.index,
           windowId: tab.windowId,
           active: tab.active,
-          pinned: tab.pinned
+          pinned: tab.pinned,
+          title: tab.title
         }
       })
       .sort((tab1, tab2) => {

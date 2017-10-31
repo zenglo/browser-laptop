@@ -14,7 +14,10 @@ require('../../../braveUnit')
 describe('topSitesReducerTest', function () {
   let topSitesReducer
   let setSitesStub
+  let calculateTopSitesStub
   before(function () {
+    const topSites = require('../../../../../app/browser/api/topSites')
+    calculateTopSitesStub = sinon.stub(topSites, 'calculateTopSites')
     const aboutNewTabState = require('../../../../../app/common/state/aboutNewTabState')
     setSitesStub = sinon.stub(aboutNewTabState, 'setSites')
     topSitesReducer = require('../../../../../app/browser/reducers/topSitesReducer')
@@ -22,10 +25,12 @@ describe('topSitesReducerTest', function () {
 
   after(function () {
     setSitesStub.restore()
+    calculateTopSitesStub.restore()
   })
 
   afterEach(function () {
     setSitesStub.reset()
+    calculateTopSitesStub.reset()
   })
 
   describe('APP_TOP_SITE_DATA_AVAILABLE', function () {
@@ -41,6 +46,15 @@ describe('topSitesReducerTest', function () {
       assert.equal(setSitesStub.calledOnce, true)
       assert.deepEqual(setSitesStub.getCall(0).args[0].toJS(), {})
       assert.deepEqual(setSitesStub.getCall(0).args[1].toJS(), topSites.toJS())
+    })
+  })
+  describe('APP_TAB_FAV_ICON_UPDATED', function () {
+    it('recalculates top site without clearing cache', function () {
+      topSitesReducer(Immutable.Map(), {
+        actionType: appConstants.APP_TAB_FAV_ICON_UPDATED
+      })
+      assert.equal(calculateTopSitesStub.callCount, 1)
+      assert.equal(calculateTopSitesStub.getCall(0).args[0], false)
     })
   })
 })

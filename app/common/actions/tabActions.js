@@ -27,7 +27,7 @@ const tabActions = {
   },
 
   didStartNavigation: function tabActionsDidStartNavigation (tabId, navigationState, windowId) {
-    dispatchAction(tabActions.didFinishNavigation.name, {
+    dispatchAction(tabActions.didStartNavigation.name, {
       tabId,
       navigationState,
       queryInfo: {

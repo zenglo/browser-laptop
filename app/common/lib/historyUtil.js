@@ -81,6 +81,7 @@ const prepareHistoryEntry = (siteDetail) => {
     partitionNumber: Number(siteDetail.get('partitionNumber', 0)),
     count: 1,
     themeColor: siteDetail.get('themeColor'),
+    computedThemeColor: siteDetail.get('computedThemeColor'),
     favicon: siteDetail.get('favicon', siteDetail.get('icon')),
     key: getKey(siteDetail),
     skipSync: siteDetail.get('skipSync', null)
@@ -107,6 +108,11 @@ const mergeSiteDetails = (oldDetail, newDetail) => {
     site = site.set('themeColor', themeColor)
   }
 
+  const computedThemeColor = newDetail.has('computedThemeColor') ? newDetail.get('computedThemeColor') : oldDetail.get('computedThemeColor')
+  if (computedThemeColor) {
+    site = site.set('computedThemeColor', computedThemeColor)
+  }
+
   // we need to have a fallback to icon, because frame has icon for it
   const favicon = (newDetail.has('favicon') || newDetail.has('icon'))
     ? newDetail.get('favicon', newDetail.get('icon'))
@@ -126,8 +132,27 @@ const getDetailFromFrame = (frame) => {
     title: frame.get('title'),
     partitionNumber: frame.get('partitionNumber'),
     favicon: frame.get('icon'),
-    themeColor: frame.get('themeColor') || frame.get('computedThemeColor')
+    themeColor: frame.get('themeColor'),
+    computedThemeColor: frame.get('computedThemeColor')
   })
+}
+
+const getDetailFromTab = (tab) => {
+  const result = {
+    location: tab.get('url'),
+    title: tab.get('title'),
+    partitionNumber: tab.get('partitionNumber'),
+    favicon: tab.get('favIconUrl')
+  }
+
+  if (tab.get('themeColor') != null) {
+    result.themeColor = tab.get('themeColor')
+  }
+
+  if (tab.get('computedThemeColor') != null) {
+    result.themeColor = tab.get('computedThemeColor')
+  }
+  return makeImmutable(result)
 }
 
 const getKey = (siteDetail) => {
@@ -153,5 +178,6 @@ module.exports = {
   prepareHistoryEntry,
   mergeSiteDetails,
   getDetailFromFrame,
+  getDetailFromTab,
   getKey
 }

@@ -89,6 +89,7 @@ describe('tabsReducer unit tests', function () {
       setActive: sinon.spy(),
       moveTo: sinon.mock(),
       reload: sinon.mock(),
+      updateFavIcon: sinon.mock(),
       updateTabsStateForWindow: sinon.mock(),
       create: sinon.mock(),
       forgetTab: sinon.spy()
@@ -739,6 +740,28 @@ describe('tabsReducer unit tests', function () {
       }))
       tabsReducer(state, action)
       assert(this.tabsAPI.moveTo.notCalled)
+    })
+  })
+  describe('APP_TAB_FAV_ICON_UPDATED', function () {
+    afterEach(function () {
+      this.tabsAPI.updateFavIcon.reset()
+    })
+    it('updates tab with favicon list', function () {
+      const tabId = 1
+      const favicon = 'https://clifton.io/scorpions-ftw.ico'
+      tabsReducer(this.state, {
+        actionType: appConstants.APP_TAB_FAV_ICON_UPDATED,
+        tabId,
+        favIconUrls: [
+          favicon,
+          ''
+        ]
+      })
+      assert.equal(this.tabsAPI.updateFavIcon.callCount, 1)
+      assert.equal(this.tabsAPI.updateFavIcon.getCall(0).args[1], tabId)
+      assert.equal(this.tabsAPI.updateFavIcon.getCall(0).args[2].size, 2)
+      assert.equal(this.tabsAPI.updateFavIcon.getCall(0).args[2].get(0), favicon)
+      assert.equal(this.tabsAPI.updateFavIcon.getCall(0).args[2].get(1), '')
     })
   })
 })
