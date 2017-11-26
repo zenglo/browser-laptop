@@ -195,7 +195,7 @@ const frameGuestInstanceIdChanged = (state, action) => {
   action = makeImmutable(action)
   const oldGuestInstanceId = action.get('oldGuestInstanceId')
   const newGuestInstanceId = action.get('newGuestInstanceId')
-
+  console.log('frame guest instance id changed', action.toJS())
   if (oldGuestInstanceId === newGuestInstanceId) {
     return state
   }
@@ -386,14 +386,14 @@ const doAction = (action) => {
         }
         break
       }
-    case windowConstants.WINDOW_SET_THEME_COLOR:
+    case appConstants.APP_TAB_SET_THEME_COLOR:
       {
-        const frameKey = action.frameProps.get('key')
-        if (action.themeColor !== undefined) {
-          windowState = windowState.setIn(frameStateUtil.frameStatePath(windowState, frameKey).concat(['themeColor']), action.themeColor)
-        }
-        if (action.computedThemeColor !== undefined) {
-          windowState = windowState.setIn(frameStateUtil.frameStatePath(windowState, frameKey).concat(['computedThemeColor']), action.computedThemeColor)
+        const tabId = action.tabId
+        const color = action.color
+        const frameKey = frameStateUtil.getFrameKeyByTabId(windowState, tabId)
+        console.log(`Got app theme color for tab ${tabId} and frame ${frameKey}`)
+        if (frameKey != null) {
+          windowState = windowState.setIn(frameStateUtil.frameStatePath(windowState, frameKey).concat(['themeColor']), color)
         }
         break
       }
@@ -837,6 +837,7 @@ const frameShortcuts = ['stop', 'reload', 'zoom-in', 'zoom-out', 'zoom-reset', '
 frameShortcuts.forEach((shortcut) => {
   // Listen for actions on the active frame
   ipc.on(`shortcut-active-frame-${shortcut}`, (e, args) => {
+    console.log('shortcut-active-frame', shortcut)
     if (shortcut === 'toggle-dev-tools') {
       appActions.toggleDevTools(frameStateUtil.getActiveFrameTabId(windowState))
     } else {
@@ -853,6 +854,7 @@ frameShortcuts.forEach((shortcut) => {
   // Listen for actions on frame N
   if (['reload', 'mute'].includes(shortcut)) {
     ipc.on(`shortcut-frame-${shortcut}`, (e, i, args) => {
+      console.log('shortcut-frame', shortcut)
       const path = ['frames', frameStateUtil.getFrameIndex(windowState, i)]
       windowState = windowState.mergeIn(path, {
         activeShortcut: shortcut,
@@ -864,5 +866,5 @@ frameShortcuts.forEach((shortcut) => {
 })
 
 appDispatcher.registerLocalCallback(doAction)
-
+window.pmWinStore = windowStore
 module.exports = windowStore

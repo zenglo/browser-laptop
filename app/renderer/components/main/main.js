@@ -19,7 +19,7 @@ const {getSetting} = require('../../../../js/settings')
 // Components
 const { Transition, TransitionGroup } = require('react-transition-group')
 const Navigator = require('../navigation/navigator')
-const Frame = require('../frame/frame')
+const GuestInstanceRenderer = require('../frame/guestInstanceRenderer')
 const TabPages = require('../tabs/tabPages')
 const TabsToolbar = require('../tabs/tabsToolbar')
 const FindBar = require('./findbar')
@@ -729,7 +729,8 @@ class Main extends React.Component {
         }
       </div>
       <div className='mainContainer'>
-        <TransitionGroup className='tabContainer'>
+        <GuestInstanceRenderer />
+        {/* <TransitionGroup className='tabContainer'>
           {
             this.props.sortedFrames.map((frameKey) =>
               <Transition
@@ -749,7 +750,7 @@ class Main extends React.Component {
               </Transition>
             )
           }
-        </TransitionGroup>
+        </TransitionGroup> */}
       </div>
       {
         this.props.showDownloadBar

@@ -218,8 +218,10 @@ function getActiveFrameKey (state) {
 }
 
 const getActiveFrameIndex = createSelector(
-  getActiveFrameKey,
-  getFrameKeysByDisplayIndex,
+  [
+    getActiveFrameKey,
+    getFrameKeysByDisplayIndex
+  ],
   (key, frameKeys) => frameKeys.findIndex(displayKey => displayKey === key)
 )
 
@@ -228,8 +230,11 @@ const getActiveFrame = createSelector(
   getActiveFrameIndex,
   (frames, activeFrameIndex) => {
     if (frames && activeFrameIndex != null) {
-      return frames.get(activeFrameIndex)
+      const activeFrame = frames.get(activeFrameIndex)
+      console.log('active frame is', activeFrame && activeFrame.toJS())
+      return activeFrame
     }
+    console.log('active frame is null')
     return null
   }
 )
@@ -256,6 +261,7 @@ function getLastCommittedURL (frame) {
 }
 
 const setActiveFrameKey = (state, frameKey) => {
+  console.trace('setting active frame key', frameKey)
   return state.set('activeFrameKey', frameKey)
 }
 

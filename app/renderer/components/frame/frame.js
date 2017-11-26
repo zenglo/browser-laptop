@@ -448,6 +448,7 @@ class Frame extends React.Component {
       windowActions.frameGuestInstanceIdChanged(this.frame, this.props.guestInstanceId, e.guestInstanceId)
     }, { passive: true })
     this.webview.addEventListener('content-blocked', (e) => {
+      console.log('content-blocked, from webview', e)
       if (this.frame.isEmpty()) {
         return
       }
@@ -465,6 +466,7 @@ class Frame extends React.Component {
       windowActions.setBlockedRunInsecureContent(this.frame, e.details[0])
     }, { passive: true })
     this.webview.addEventListener('context-menu', (e) => {
+      // done
       if (this.frame.isEmpty()) {
         return
       }
@@ -473,6 +475,7 @@ class Frame extends React.Component {
       e.stopPropagation()
     })
     this.webview.addEventListener('update-target-url', (e) => {
+      console.log('update target url')
       const downloadBarHeight = domUtil.getStyleConstants('download-bar-height')
       let nearBottom = e.y > (window.innerHeight - 150 - downloadBarHeight)
       let mouseOnLeft = e.x < (window.innerWidth / 2)
@@ -487,6 +490,7 @@ class Frame extends React.Component {
       windowActions.onFrameMouseLeave(this.props.tabId)
     }, { passive: true })
     this.webview.addEventListener('will-destroy', (e) => {
+      // not moved, possibly not required
       this.onCloseFrame()
     }, { passive: true })
     this.webview.addEventListener('page-favicon-updated', (e) => {
@@ -504,23 +508,27 @@ class Frame extends React.Component {
       }
     }, { passive: true })
     this.webview.addEventListener('show-autofill-settings', (e) => {
+      // done
       appActions.createTabRequested({
         url: 'about:autofill',
         active: true
       })
     }, { passive: true })
     this.webview.addEventListener('show-autofill-popup', (e) => {
+      // done
       if (this.frame.isEmpty()) {
         return
       }
       contextMenus.onShowAutofillMenu(e.suggestions, e.rect, this.frame)
     }, { passive: true })
     this.webview.addEventListener('hide-autofill-popup', (e) => {
+      // done
       if (this.props.isAutFillContextMenu) {
         windowActions.autofillPopupHidden(this.props.tabId)
       }
     }, { passive: true })
     this.webview.addEventListener('ipc-message', (e) => {
+      // TODO
       let method = () => {}
       switch (e.channel) {
         case messages.GOT_CANVAS_FINGERPRINTING:

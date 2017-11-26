@@ -295,6 +295,17 @@ const appActions = {
     })
   },
 
+  setTabThemeColor: function (windowId, tabId, color) {
+    dispatch({
+      actionType: appConstants.APP_TAB_SET_THEME_COLOR,
+      tabId,
+      color,
+      queryInfo: {
+        windowId
+      }
+    })
+  },
+
   /**
    * Dispatches a message to the store to set a new frame as the active frame.
    *
@@ -677,6 +688,13 @@ const appActions = {
     dispatch({
       actionType: appConstants.APP_WINDOW_BLURRED,
       windowId: windowId
+    })
+  },
+
+  windowFocused: function (windowId) {
+    dispatch({
+      actionType: appConstants.APP_WINDOW_FOCUSED,
+      windowId
     })
   },
 

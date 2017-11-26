@@ -143,6 +143,14 @@ const tabsReducer = (state, action, immutableAction) => {
       state = tabState.maybeCreateTab(state, action)
       // tabs.debugTabs(state)
       break
+    case appConstants.APP_TAB_SET_THEME_COLOR:
+      const tabUpdate = {
+        tabId: action.get('tabId'),
+        themeColor: action.get('color')
+      }
+      console.log('setting tab theme color details', tabUpdate)
+      state = tabState.updateTabValue(state, Immutable.fromJS(tabUpdate), false)
+      break
     case appConstants.APP_TAB_CLOSE_REQUESTED:
       {
         let tabId = action.get('tabId')

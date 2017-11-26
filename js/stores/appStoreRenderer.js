@@ -39,5 +39,6 @@ class AppStoreRenderer extends EventEmitter {
 }
 
 const appStoreRenderer = new AppStoreRenderer()
+window.pmAppStore = appStoreRenderer
 const emitChanges = debounce(appStoreRenderer.emitChanges.bind(appStoreRenderer), 5)
 module.exports = appStoreRenderer

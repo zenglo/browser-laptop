@@ -4,6 +4,7 @@
 
 const Immutable = require('immutable')
 const assert = require('assert')
+const { createSelector } = require('reselect')
 
 // State
 const frameState = require('./frameState')
@@ -353,10 +354,13 @@ const tabState = {
     return tabState.updateTabValue(state, action.get('tabValue'), action.get('replace'))
   },
 
-  getTabs: (state) => {
-    state = validateState(state)
-    return state.get('tabs')
-  },
+  getTabs: createSelector(
+    state => state.get('tabs'),
+    tabState => {
+      console.log('tabs changed', tabState.toJS())
+      return tabState
+    }
+  ),
 
   getLastActiveTabId: (state, windowId) => {
     const tabId = tabState.getTabsByLastActivated(state, windowId).slice(-2).first()
