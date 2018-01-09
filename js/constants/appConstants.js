@@ -192,7 +192,8 @@ const appConstants = {
   APP_ON_LEDGER_MEDIA_DATA: _,
   APP_ON_PRUNE_SYNOPSIS: _,
   APP_ON_HISTORY_LIMIT: _,
-  APP_ON_LEDGER_MEDIA_PUBLISHER: _
+  APP_ON_LEDGER_MEDIA_PUBLISHER: _,
+  APP_TEXT_SCRAPER_DATA_AVAILABLE: _
 }
 
 module.exports = mapValuesByKeys(appConstants)
