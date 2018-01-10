@@ -97,7 +97,7 @@ const settings = {
   PINTEREST_ENABLED: 'extensions.pinterest.enabled',
   METAMASK_ENABLED: 'extensions.metamask.enabled',
   METAMASK_PROMPT_DISMISSED: 'extensions.metamask.promptDismissed',
-
+  USERMODEL_ENABLED: 'BATads.enabled',
   // DEPRECATED settings
   // DO NOT REMOVE OR CHANGE THESE VALUES
   // ########################
