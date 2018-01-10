@@ -206,6 +206,7 @@ const handleAppAction = (action) => {
       require('../../app/browser/reducers/bookmarkToolbarReducer'),
       require('../../app/browser/reducers/siteSettingsReducer'),
       require('../../app/browser/reducers/pageDataReducer'),
+      require('../../app/browser/reducers/userModelReducer'),
       ledgerReducer,
       require('../../app/browser/menu')
     ]
