@@ -92,6 +92,7 @@ let generateBraveManifest = () => {
           indexHTML
         ],
         js: [
+          'content/scripts/textScraper.js',
           'content/scripts/adInsertion.js',
           'content/scripts/pageInformation.js',
           'content/scripts/flashListener.js'
