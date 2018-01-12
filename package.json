@@ -22,7 +22,6 @@
     "clean-tp-data": "node ./tools/clean.js userData TrackingProtection.dat",
     "download-languages": "node ./tools/downloadLanguages",
     "download-sync-client": "node ./tools/downloadSyncClient",
-    "electron-rebuild": "electron-rebuild",
     "flow": "flow; test $? -eq 0 -o $? -eq 2",
     "lint": "standard --verbose | snazzy",
     "postinstall": "npm run download-sync-client && webpack",
@@ -87,7 +86,6 @@
     "acorn": "3.2.0",
     "aphrodite": "1.1.0",
     "async": "^2.0.1",
-    "bat-balance": "^1.0.3",
     "bat-client": "^2.0.6",
     "bat-publisher": "^2.0.3",
     "bignumber.js": "^4.0.4",
@@ -194,8 +192,7 @@
     "webdriverio": "4.7.1",
     "webpack": "^3.8.1",
     "webpack-dev-server": "^2.6.1",
-    "webpack-notifier": "^1.2.1",
-    "xml2js": "^0.4.15"
+    "webpack-notifier": "^1.2.1"
   },
   "optionalDependencies": {
     "electron-installer-debian": "brave/electron-installer-debian",
