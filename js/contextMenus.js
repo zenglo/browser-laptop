@@ -550,6 +550,19 @@ function tabTemplateInit (frameProps) {
     }
   }, CommonMenu.separatorMenuItem)
 
+  // debug options, only in development
+  if (process && process.env && process.env.NODE_ENV === 'development') {
+    template.push(
+      {
+        label: 'Discard',
+        click: (item) => {
+          appActions.discardTabRequested(tabId)
+        }
+      },
+      CommonMenu.separatorMenuItem
+    )
+  }
+
   template.push(Object.assign({},
     CommonMenu.reopenLastClosedTabItem(),
     { enabled: closedFrames ? closedFrames.size > 0 : false }
