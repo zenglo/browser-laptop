@@ -434,6 +434,10 @@ class Frame extends React.Component {
 
   addEventListeners () {
     this.webview.addEventListener('tab-id-changed', (e) => {
+      // for debugging, remove
+      if (process.env.NODE_ENV === 'development') {
+        console.error(`<webview>.tab-id-changed from ${this.props.tabId} to ${e.tabID}`)
+      }
       if (this.frame.isEmpty()) {
         return
       }
