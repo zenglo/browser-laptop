@@ -690,7 +690,7 @@ function initTor (ses, partition) {
       } else {
         // do tor stuff
       }
-    })
+    }, ses)
   })
 }
 
