@@ -12,6 +12,8 @@ let processType
 let currentWindow
 let BrowserWindow
 
+const isBrowser = typeof process !== 'undefined' && process.type === 'browser'
+
 if (typeof window !== 'undefined' && window.location.protocol === 'chrome-extension:' && typeof chrome !== 'undefined' && typeof chrome.ipcRenderer === 'object') {
   processType = 'extension-page'
   ipc = chrome.ipcRenderer // eslint-disable-line
@@ -82,6 +84,11 @@ class AppDispatcher {
   dispatch (payload) {
     if (payload.actionType === undefined) {
       throw new Error('Dispatcher: Undefined action for payload', payload)
+    }
+
+    // log action name to console if asked to
+    if (isBrowser && process.argv.includes('--debug-dispatch-actions')) {
+      console.log(`ACTION dispatched - ${payload.actionType}`)
     }
 
     if (this.dispatching) {
