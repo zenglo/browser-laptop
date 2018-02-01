@@ -43,7 +43,7 @@ class GuestInstanceRenderer extends React.Component {
 
   componentDidUpdate (prevProps, prevState) {
     // attach new guest instance
-    console.log('frame componentDidUpdate', {prevProps, props: this.props}, this.webview)
+    console.log('frame componentDidUpdate', {activeFrame: this.props.activeFrame.toJS(), activeTab: this.props.activeTab.toJS(), prevProps, props: this.props}, this.webview)
     if (this.webview && prevProps.activeFrame !== this.props.activeFrame) {
       const prevGuestInstanceId = prevProps.activeFrame && prevProps.activeFrame.get('guestInstanceId')
       const nextGuestInstanceId = this.props.activeFrame && this.props.activeFrame.get('guestInstanceId')

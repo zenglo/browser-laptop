@@ -38,27 +38,4 @@
    return !isEntryIntersected(state, 'tabs', intersection.at40)
  }
 
- module.exports.getDisplayTitle = (state, frameKey) => {
-   const frame = frameStateUtil.getFrameByKey(state, frameKey)
 
-   if (frame == null) {
-     return ''
-   }
-
-   const isNewTabPage = frameStateUtil.frameLocationMatch(frame, 'about:newtab')
-   const isAboutBlankPage = frameStateUtil.frameLocationMatch(frame, 'about:blank')
-   // For renderer initiated navigation, make sure we show Untitled
-   // until we know what we're loading.  We should probably do this for
-   // all about: pages that we already know the title for so we don't have
-   // to wait for the title to be parsed.
-   if (isAboutBlankPage) {
-     return locale.translation('aboutBlankTitle')
-   } else if (isNewTabPage) {
-     return locale.translation('newTab')
-   }
-
-   // YouTube tries to change the title to add a play icon when
-   // there is audio. Since we have our own audio indicator we get
-   // rid of it.
-   return (frame.get('title') || frame.get('location') || '').replace('▶ ', '')
- }

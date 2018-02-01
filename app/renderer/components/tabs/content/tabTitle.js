@@ -33,7 +33,7 @@ class TabTitle extends React.Component {
     props.isDarwin = isDarwin
     props.isPinned = tabState.isTabPinned(state, tabId)
     props.showTabTitle = titleState.showTabTitle(currentWindow, frameKey)
-    props.displayTitle = titleState.getDisplayTitle(currentWindow, frameKey)
+    props.displayTitle = tabState.getDisplayTitle(state, tabId)
     props.addExtraGutter = tabUIState.addExtraGutterToTitle(currentWindow, frameKey)
     props.isTextWhite = tabUIState.checkIfTextColor(currentWindow, frameKey, 'white')
     props.gradientColor = tabUIState.getTabEndIconBackgroundColor(currentWindow, frameKey)

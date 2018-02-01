@@ -14,6 +14,8 @@ const windowState = require('./windowState')
 const { makeImmutable, isMap, isList } = require('./immutableUtil')
 // this file should eventually replace frameStateUtil
 const frameStateUtil = require('../../../js/state/frameStateUtil')
+const { getSourceAboutUrl } = require('../../../js/lib/appUrlUtil')
+const locale = require('../../../js/l10n')
 
 const validateId = function (propName, id) {
   assert.ok(id, `${propName} cannot be null`)
@@ -200,8 +202,10 @@ const tabState = {
     let tabValue = validateTabValue(action.get('tabValue'))
 
     if (tabState.getTab(state, tabValue)) {
+      console.log('update tab', tabValue.toJS())
       return tabState.updateTab(state, action)
     } else {
+      console.log('create tab', tabValue.toJS())
       return tabState.insertTab(state, action)
     }
   },
@@ -488,6 +492,33 @@ const tabState = {
 
   getTitle: (state, tabId) => {
     return tabState.getTabPropertyByTabId(state, tabId, 'title', '')
+  },
+
+  getDisplayTitle: (state, tabId) => {
+    const tab = tabState.getByTabId(state, tabId)
+    if (!tab) {
+      return `[no tab for ${tabId}]`
+    }
+    const url = tab.get('url') || tab.get('displayUrl')
+    const aboutUrl = getSourceAboutUrl(url) || url
+    const isNewTabPage = aboutUrl === 'about:newtab'
+    const isAboutBlankPage = aboutUrl === 'about:blank'
+    // For renderer initiated navigation, make sure we show Untitled
+    // until we know what we're loading.  We should probably do this for
+    // all about: pages that we already know the title for so we don't have
+    // to wait for the title to be parsed.
+    if (isAboutBlankPage) {
+      return locale.translation('aboutBlankTitle')
+    } else if (isNewTabPage) {
+      return locale.translation('newTab')
+    }
+    const title = (tab.get('title') || url || '')
+    // YouTube tries to change the title to add a play icon when
+    // there is audio. Since we have our own audio indicator we get
+    // rid of it.
+    .replace('▶ ', '')
+
+    return title
   },
 
   getOpenerTabId: (state, tabId) => {

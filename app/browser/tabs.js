@@ -63,6 +63,7 @@ const getTabValue = function (tabId) {
     let tabValue = makeImmutable(tab.tabValue())
     tabValue = tabValue.set('canGoBack', tab.canGoBack())
     tabValue = tabValue.set('canGoForward', tab.canGoForward())
+    tabValue = tabValue.set('displayUrl', tab.getURL() || 'about:blank')
     tabValue = tabValue.set('guestInstanceId', tab.guestInstanceId)
     tabValue = tabValue.set('partition', tab.session.partition)
     tabValue = tabValue.set('partitionNumber', getPartitionNumber(tab.session.partition))
@@ -439,6 +440,22 @@ const api = {
         return
       }
 
+      const sourceProps = [ ]
+      for (const sourceProp in source) {
+        sourceProps.push(sourceProp)
+      }
+      console.log('source props: ', sourceProps.join(', '))
+      console.log('--------------------------')
+
+      const tabProps = [ ]
+      for (const sourceProp in newTab) {
+        tabProps.push(sourceProp)
+      }
+      console.log('tab props: ', tabProps.join(', '))
+      console.log('--------------------------')
+
+      console.log('disposition:', disposition)
+
       if (newTab.isBackgroundPage()) {
         if (newTab.isDevToolsOpened()) {
           newTab.devToolsWebContents.focus()
@@ -456,6 +473,8 @@ const api = {
       if (source.isGuest()) {
         rendererInitiated = true
       }
+
+
 
       const tabId = newTab.getId()
       webContentsCache.updateWebContents(tabId, newTab, openerTabId)
@@ -500,6 +519,7 @@ const api = {
       }
     })
 
+
     process.on('chrome-tabs-created', (tabId) => {
       if (shouldDebugTabEvents) {
         console.log(`tab [${tabId} via process] chrome-tabs-created`)
@@ -535,6 +555,21 @@ const api = {
           console.log(`Tab [${eventTabId}] event '${arguments[0]}'`)
           oldEmit.apply(tab, arguments)
         }
+      }
+
+
+      let windowId
+      const newTabValue = getTabValue(tabId)
+      if (newTabValue && parseInt(newTabValue.get('windowId')) > -1) {
+        windowId = newTabValue.get('windowId')
+      } else {
+        const hostWebContents = (event.source && event.source.hostWebContents) || (event.source && event.source) || event
+        windowId = hostWebContents.getOwnerBrowserWindow().id
+      }
+      if (windowId != null) {
+        tab.attach(windowId)
+      } else {
+        console.log('null window Id!')
       }
 
       tab.on('content-blocked', e => {
