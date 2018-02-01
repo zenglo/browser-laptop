@@ -641,61 +641,59 @@ function registerForMagnetHandler (session) {
   }
 }
 
+/**
+ * Checks that a Tor proxy is available on socks5 port 9050
+ */
+module.exports.checkTorAvailable = (ses) => {
+  console.log('checking for tor availability...')
+  if (!ses) {
+    ses = session.fromPartition('persist:tor')
+  }
+  request('https://check.torproject.org/?TorButton=true', (err, response, body) => {
+    let success = null
+    if (err) {
+      console.log('Could not check Tor status', err)
+    } else if (body && body.includes('id="TorCheckResult" target="success"')) {
+      // success
+      console.log('Tor is running!')
+      success = true
+    } else if (body && body.includes('id="TorCheckResult" target="failure"')) {
+      // we are not using Tor
+      console.log('Tor is not running.')
+      success = false
+    } else {
+      // unknown error
+      console.log('Bad response from check.torproject.org. HTTP status:',
+        response.statusCode)
+    }
+    if (!success) {
+      const message =
+        locale.translation(success === false ? 'torCheckFailure' : 'torCheckError')
+      appActions.showNotification({
+        position: 'global',
+        message,
+        buttons: [
+          {text: locale.translation('dismiss')}
+        ],
+        options: {
+          persist: false
+        }
+      })
+      permissionCallbacks[message] = () => {
+        appActions.hideNotification(message)
+      }
+    }
+  }, ses)
+}
+
 function initSession (ses, partition) {
   registeredSessions[partition] = ses
   ses.setEnableBrotli(true)
   ses.userPrefs.setDefaultZoomLevel(getSetting(settings.DEFAULT_ZOOM_LEVEL) || config.zoom.defaultValue)
 }
 
-function initTor (ses, partition) {
-  if (partition !== 'persist:tor') {
-    return
-  }
-  console.log('in init tor')
-  // XXX Specify SOCKS username and password per first-party origin.
-  // Can we do this with a specially crafted PAC script (proxy
-  // autoconfig), or will it be necessary to change the way that proxy
-  // configuration works in Muon?
-  let proxyconfig = {
-    proxyRules: 'socks5://127.0.0.1:9050,direct://'
-  }
-  // darkdh to diracdeltas: this can be deleted because it is covered by "tor_proxy"
-  ses.setProxy(proxyconfig, () => {
-    // Make a request to check.torproject.org to ensure that proxying works
-    console.log('checking for Tor proxy')
-    request('https://check.torproject.org/?TorButton=true', (err, response, body) => {
-      let success = null
-      if (err) {
-        console.log('Could not check Tor status', err)
-      } else if (body && body.includes('id="TorCheckResult" target="success"')) {
-        // success
-        console.log('Tor is running!')
-        success = true
-      } else if (body && body.includes('id="TorCheckResult" target="failure"')) {
-        // we are not using Tor
-        console.log('Tor is not running.')
-        success = false
-      } else {
-        // unknown error
-        console.log('Bad response from check.torproject.org. HTTP status:',
-          response.statusCode)
-      }
-      if (!success) {
-        appActions.showNotification({
-          position: 'global',
-          message: locale.translation(success === false ? 'torCheckFailure' : 'torCheckError'),
-          buttons: [
-            {text: locale.translation('dismiss')}
-          ]
-        })
-      } else {
-        // do tor stuff
-      }
-    }, ses)
-  })
-}
-
 const initPartition = (partition) => {
+  const isTorPartition = partition === 'persist:tor'
   // Partitions can only be initialized once the app is ready
   if (!app.isReady()) {
     partitionsToInitialize.push(partition)
@@ -706,7 +704,6 @@ const initPartition = (partition) => {
   }
   initializedPartitions[partition] = true
   let fns = [initSession,
-    initTor,
     userPrefs.init,
     hostContentSettings.init,
     registerForBeforeRequest,
@@ -721,13 +718,14 @@ const initPartition = (partition) => {
   if (isSessionPartition(partition)) {
     options.parent_partition = ''
   }
-  if (partition === 'persist:tor') {
+  if (isTorPartition) {
     options.isolated_storage = true
     options.parent_partition = ''
     options.tor_proxy = 'socks5://127.0.0.1:9050'
   }
 
   let ses = session.fromPartition(partition, options)
+
   fns.forEach((fn) => {
     fn(ses, partition, module.exports.isPrivate(partition))
   })

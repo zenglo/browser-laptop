@@ -99,6 +99,8 @@ module.exports.newTorTabMenuItem = () => {
         isPrivate: true,
         isTor: true
       })
+      // Wait for session to initialize, then check if Tor is available
+      setTimeout(appActions.checkTorAvailable, 500)
     }
   }
 }

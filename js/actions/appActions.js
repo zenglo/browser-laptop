@@ -1914,6 +1914,12 @@ const appActions = {
       duration,
       revisited
     })
+  },
+
+  checkTorAvailable: function () {
+    dispatch({
+      actionType: appConstants.APP_CHECK_TOR_AVAILABLE
+    })
   }
 }
 
