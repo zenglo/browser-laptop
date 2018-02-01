@@ -109,16 +109,9 @@ module.exports.newTorIdentityMenuItem = () => {
   return {
     label: locale.translation('newTorIdentity'),
     click: function (item, focusedWindow) {
-      // XXX new tor circuits
-      let torSession = electron.session.fromPartition('persist:tor')
-      torSession.clearCache(() => { console.log('cleared tor cache') })
-      torSession.clearStorageData({}, () => {
-        console.log('cleared tor storage')
-      })
-      torSession.clearHostResolverCache(() => {
-        console.log('cleared host resolver cache')
-      })
-    }
+      // TODO
+    },
+    enabled: false
   }
 }
 
