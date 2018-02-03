@@ -700,6 +700,10 @@ const api = {
         appActions.tabWillAttach(tab.getId())
       })
 
+      tab.on('did-attach', (e, windowWebContents) => {
+        updateTab(tabId)
+      })
+
       tab.on('set-active', (sender, isActive) => {
         if (isActive) {
           const tabValue = getTabValue(tabId)
