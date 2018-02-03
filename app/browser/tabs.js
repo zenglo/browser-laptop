@@ -57,6 +57,22 @@ const normalizeUrl = function (url) {
   return url
 }
 
+const getDebugTabValue = function (tab) {
+  if (tab && !tab.isDestroyed()) {
+    let tabValue = tab.tabValue()
+    tabValue.tabEntries = tab.getEntryCount()
+    tabValue.fnCanGoForward = tab.canGoForward()
+    tabValue.fnCanGoBack = tab.canGoBack()
+    tabValue.tabGuestInstanceId = tab.guestInstanceId
+    tabValue.tabSessionPartition = tab.session.partition
+    tabValue.fnGetTitle = tab.getTitle()
+    tabValue.fnGetURL = tab.getURL()
+    tabValue.getPartitionNumberRsult = getPartitionNumber(tab.session.partition)
+    tabValue.tabId = tab.getId()
+    return tabValue
+  }
+}
+
 const getTabValue = function (tabId) {
   let tab = webContentsCache.getWebContents(tabId)
   if (tab && !tab.isDestroyed()) {
@@ -435,6 +451,7 @@ const api = {
     })
 
     process.on('add-new-contents', (e, source, newTab, disposition, size, userGesture) => {
+      console.log('add-new-contents', disposition, newTab.getURL() + ' ' + newTab.getTitle() + ' ' + newTab.getEntryCount(), getDebugTabValue(newTab))
       if (userGesture === false) {
         e.preventDefault()
         return
@@ -444,17 +461,10 @@ const api = {
       for (const sourceProp in source) {
         sourceProps.push(sourceProp)
       }
-      console.log('source props: ', sourceProps.join(', '))
-      console.log('--------------------------')
-
       const tabProps = [ ]
       for (const sourceProp in newTab) {
         tabProps.push(sourceProp)
       }
-      console.log('tab props: ', tabProps.join(', '))
-      console.log('--------------------------')
-
-      console.log('disposition:', disposition)
 
       if (newTab.isBackgroundPage()) {
         if (newTab.isDevToolsOpened()) {
@@ -483,9 +493,15 @@ const api = {
       let windowId
       if (newTabValue && parseInt(newTabValue.get('windowId')) > -1) {
         windowId = newTabValue.get('windowId')
+        if (shouldDebugTabEvents) {
+          console.log(`Tab [${tabId}] added for window ${windowId}`)
+        }
       } else {
         const hostWebContents = source.hostWebContents || source
         windowId = hostWebContents.getOwnerBrowserWindow().id
+        if (shouldDebugTabEvents) {
+          console.log(`Tab [${tabId}] did not explicitly ask for windowId, using event source of ${windowId}`)
+        }
       }
 
       let index
@@ -544,6 +560,7 @@ const api = {
       if (tab.isBackgroundPage() || !tab.isGuest()) {
         return
       }
+      console.log('web-contents-created', tab.getURL() + ' ' + tab.getTitle() + ' ' + tab.getEntryCount())
       const tabId = tab.getId()
       // command-line flag --debug-tab-events
       if (shouldDebugTabEvents) {
@@ -555,21 +572,6 @@ const api = {
           console.log(`Tab [${eventTabId}] event '${arguments[0]}'`)
           oldEmit.apply(tab, arguments)
         }
-      }
-
-
-      let windowId
-      const newTabValue = getTabValue(tabId)
-      if (newTabValue && parseInt(newTabValue.get('windowId')) > -1) {
-        windowId = newTabValue.get('windowId')
-      } else {
-        const hostWebContents = (event.source && event.source.hostWebContents) || (event.source && event.source) || event
-        windowId = hostWebContents.getOwnerBrowserWindow().id
-      }
-      if (windowId != null) {
-        tab.attach(windowId)
-      } else {
-        console.log('null window Id!')
       }
 
       tab.on('content-blocked', e => {
@@ -848,6 +850,7 @@ const api = {
   },
 
   setActive: (tabId) => {
+    console.log('setActive: ' + tabId)
     let tab = webContentsCache.getWebContents(tabId)
     if (tab && !tab.isDestroyed()) {
       tab.setActive(true)
@@ -1351,17 +1354,21 @@ const api = {
   },
 
   debugTabs: (state) => {
-    console.log(tabState.getTabs(state)
-      .toJS()
-      .map((tab) => {
-        return {
-          tabId: tab.tabId,
-          index: tab.index,
-          windowId: tab.windowId,
-          active: tab.active,
-          pinned: tab.pinned
-        }
-      })
+    const tabStateTabs = tabState.getTabs(state).toJS()
+    const tabValues = tabStateTabs
+      .map(tabStateTab => webContentsCache.getWebContents(tabStateTab.tabId))
+      .filter(tab => tab && !tab.isDestroyed())
+      .map(getDebugTabValue)
+    console.log('tabstate:', tabStateTabs
+      // .map((tab) => {
+      //   return {
+      //     tabId: tab.tabId,
+      //     index: tab.index,
+      //     windowId: tab.windowId,
+      //     active: tab.active,
+      //     pinned: tab.pinned
+      //   }
+      // })
       .sort((tab1, tab2) => {
         if (tab1.windowId !== tab2.windowId) {
           return tab1.windowId - tab2.windowId
@@ -1371,6 +1378,7 @@ const api = {
         }
         return 0
       }))
+    console.log('tabValues():', tabValues)
   },
   updateTabsStateForAttachedTab: (state, tabId) => {
     const tabValue = getTabValue(tabId)
