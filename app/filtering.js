@@ -42,7 +42,7 @@ const beforeSendHeadersFilteringFns = []
 const beforeRequestFilteringFns = []
 const beforeRedirectFilteringFns = []
 const headersReceivedFilteringFns = []
-let partitionsToInitialize = ['default']
+let partitionsToInitialize = ['default', 'tor-test']
 let initializedPartitions = {}
 
 const transparent1pxGif = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
@@ -644,46 +644,58 @@ function registerForMagnetHandler (session) {
 /**
  * Checks that a Tor proxy is available on socks5 port 9050
  */
-module.exports.checkTorAvailable = (ses) => {
-  console.log('checking for tor availability...')
+module.exports.checkTorAvailable = () => {
+  const ses = registeredSessions['tor-test']
   if (!ses) {
-    ses = session.fromPartition('persist:tor')
+    initPartition('tor-test')
+    module.exports.checkTorAvailable()
+    return
   }
-  request('https://check.torproject.org/?TorButton=true', (err, response, body) => {
-    let success = null
-    if (err) {
-      console.log('Could not check Tor status', err)
-    } else if (body && body.includes('id="TorCheckResult" target="success"')) {
-      // success
-      console.log('Tor is running!')
-      success = true
-    } else if (body && body.includes('id="TorCheckResult" target="failure"')) {
-      // we are not using Tor
-      console.log('Tor is not running.')
-      success = false
-    } else {
-      // unknown error
-      console.log('Bad response from check.torproject.org. HTTP status:',
-        response.statusCode)
-    }
-    if (!success) {
-      const message =
-        locale.translation(success === false ? 'torCheckFailure' : 'torCheckError')
-      appActions.showNotification({
-        position: 'global',
-        message,
-        buttons: [
-          {text: locale.translation('dismiss')}
-        ],
-        options: {
-          persist: false
-        }
-      })
-      permissionCallbacks[message] = () => {
-        appActions.hideNotification(message)
+
+  const proxyConfig = {
+    proxyRules: 'socks5://127.0.0.1:9050,direct://'
+  }
+  // XXX: due to muon bug, callback is required but doesn't do anything
+  ses.setProxy(proxyConfig, () => {})
+
+  // TODO: remove setTimeout once muon supports setProxy callback
+  setTimeout(() => {
+    request('https://check.torproject.org/?TorButton=true', (err, response, body) => {
+      let success = null
+      if (err) {
+        console.log('Could not check Tor status', err)
+      } else if (body && body.includes('id="TorCheckResult" target="success"')) {
+        // success
+        console.log('Tor is running!')
+        success = true
+      } else if (body && body.includes('id="TorCheckResult" target="failure"')) {
+        // we are not using Tor
+        console.log('Tor is not running.')
+        success = false
+      } else {
+        // unknown error
+        console.log('Bad response from check.torproject.org. HTTP status:',
+          response.statusCode)
       }
-    }
-  }, ses)
+      if (!success) {
+        const message =
+          locale.translation(success === false ? 'torCheckFailure' : 'torCheckError')
+        appActions.showNotification({
+          position: 'global',
+          message,
+          buttons: [
+            {text: locale.translation('dismiss')}
+          ],
+          options: {
+            persist: false
+          }
+        })
+        permissionCallbacks[message] = () => {
+          appActions.hideNotification(message)
+        }
+      }
+    }, ses)
+  }, 500)
 }
 
 function initSession (ses, partition) {
@@ -694,6 +706,7 @@ function initSession (ses, partition) {
 
 const initPartition = (partition) => {
   const isTorPartition = partition === 'persist:tor'
+  const isTorTestPartition = partition === 'tor-test'
   // Partitions can only be initialized once the app is ready
   if (!app.isReady()) {
     partitionsToInitialize.push(partition)
@@ -703,6 +716,17 @@ const initPartition = (partition) => {
     return
   }
   initializedPartitions[partition] = true
+
+  if (isTorTestPartition) {
+    // This partition is only used to check for Tor proxy availability
+    let ses = session.fromPartition(partition, {
+      parent_partition: '',
+      cache: false
+    })
+    registeredSessions[partition] = ses
+    return
+  }
+
   let fns = [initSession,
     userPrefs.init,
     hostContentSettings.init,
