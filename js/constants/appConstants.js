@@ -193,7 +193,8 @@ const appConstants = {
   APP_ON_PRUNE_SYNOPSIS: _,
   APP_ON_HISTORY_LIMIT: _,
   APP_ON_LEDGER_MEDIA_PUBLISHER: _,
-  APP_CHECK_TOR_AVAILABLE: _
+  APP_CHECK_TOR_AVAILABLE: _,
+  APP_SET_TOR_NEW_IDENTITY: _
 }
 
 module.exports = mapValuesByKeys(appConstants)
