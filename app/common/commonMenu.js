@@ -82,24 +82,16 @@ module.exports.newPrivateTabMenuItem = () => {
     label: locale.translation('newPrivateTab'),
     accelerator: 'Shift+CmdOrCtrl+P',
     click: function (item, focusedWindow) {
+      // Check if Tor is available
+      const useTor = getSetting(settings.USE_TOR_PRIVATE_TABS)
+      if (useTor) {
+        appActions.checkTorAvailable()
+      }
+      // TODO: if Tor is both available and enabled, set {isTor: true}
       ensureAtLeastOneWindow({
         url: 'about:newtab',
         isPrivate: true
       })
-    }
-  }
-}
-
-module.exports.newTorTabMenuItem = () => {
-  return {
-    label: locale.translation('newTorTab'),
-    click: function (item, focusedWindow) {
-      ensureAtLeastOneWindow({
-        url: 'about:newtab',
-        isTor: true
-      })
-      // Check if Tor is available
-      appActions.checkTorAvailable()
     }
   }
 }

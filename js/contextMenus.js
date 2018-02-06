@@ -1287,8 +1287,6 @@ function onNewTabContextMenu (target) {
   const menuTemplate = [
     CommonMenu.newTabMenuItem(),
     CommonMenu.newPrivateTabMenuItem(),
-    CommonMenu.newTorTabMenuItem(),
-    CommonMenu.newTorIdentityMenuItem(),
     CommonMenu.newPartitionedTabMenuItem(),
     CommonMenu.newWindowMenuItem()
   ]

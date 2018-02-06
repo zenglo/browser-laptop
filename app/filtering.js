@@ -677,23 +677,7 @@ module.exports.checkTorAvailable = () => {
         console.log('Bad response from check.torproject.org. HTTP status:',
           response.statusCode)
       }
-      if (!success) {
-        const message =
-          locale.translation(success === false ? 'torCheckFailure' : 'torCheckError')
-        appActions.showNotification({
-          position: 'global',
-          message,
-          buttons: [
-            {text: locale.translation('dismiss')}
-          ],
-          options: {
-            persist: false
-          }
-        })
-        permissionCallbacks[message] = () => {
-          appActions.hideNotification(message)
-        }
-      }
+      appActions.torAvailable(success)
     }, ses)
   }, 500)
 }

@@ -1922,6 +1922,13 @@ const appActions = {
     })
   },
 
+  torAvailable: function (value) {
+    dispatch({
+      actionType: appConstants.APP_TOR_AVAILABLE,
+      value
+    })
+  },
+
   setTorNewIdentity: function () {
     dispatch({
       actionType: appConstants.APP_SET_TOR_NEW_IDENTITY
