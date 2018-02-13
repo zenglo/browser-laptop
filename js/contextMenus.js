@@ -550,7 +550,7 @@ function tabTemplateInit (frameProps) {
   }, CommonMenu.separatorMenuItem)
 
   // debug options, only in development
-  if (process && process.env && process.env.NODE_ENV === 'development') {
+  if (getSetting(settings.DEBUG_ALLOW_MANUAL_TAB_DISCARD) === true) {
     template.push(
       {
         label: 'Discard',
