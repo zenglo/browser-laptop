@@ -437,8 +437,9 @@ class Frame extends React.Component {
       if (this.frame.isEmpty()) {
         return
       }
-
-      windowActions.frameTabIdChanged(this.frame, this.props.tabId, e.tabID)
+      if (this.props.tabId !== e.tabID) {
+        appActions.tabReplaced(this.props.tabId, e.tabID)
+      }
     }, { passive: true })
     this.webview.addEventListener('guest-ready', (e) => {
       if (this.frame.isEmpty()) {

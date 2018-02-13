@@ -302,6 +302,15 @@ const appActions = {
     })
   },
 
+  tabReplaced: function (oldTabId, newTabId) {
+    console.log('tab replaced', {oldTabId, newTabId})
+    dispatch({
+      actionType: appConstants.APP_TAB_REPLACED,
+      oldTabId,
+      newTabId
+    })
+  },
+
   /**
    * Dispatches a message to the store to set a new frame as the active frame.
    *

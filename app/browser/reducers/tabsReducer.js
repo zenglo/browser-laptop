@@ -150,6 +150,9 @@ const tabsReducer = (state, action, immutableAction) => {
       state = tabState.maybeCreateTab(state, action)
       // tabs.debugTabs(state)
       break
+    case appConstants.APP_TAB_REPLACED:
+      tabs.tabIdChanged(action.get('oldTabId'), action.get('newTabId'))
+      break
     case appConstants.APP_TAB_CLOSE_REQUESTED:
       {
         let tabId = action.get('tabId')

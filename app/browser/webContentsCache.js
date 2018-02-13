@@ -31,11 +31,23 @@ const forgetOpenerForTabId = (tabId) => {
   }
 }
 
+const tabIdChanged = (oldTabId, newTabId) => {
+  // any tabs referencing the old contents Id as the opener,
+  // should now reference the new contents Id
+  for (const tabId in currentWebContents) {
+    const tabData = currentWebContents[tabId]
+    if (tabData && tabData.openerTabId != null && tabData.openerTabId === oldTabId) {
+      tabData.openerTabId = newTabId
+    }
+  }
+}
+
 module.exports = {
   cleanupWebContents,
   getWebContents,
   getOpenerTabId,
   forgetOpenerForTabId,
   updateWebContents,
+  tabIdChanged,
   currentWebContents
 }

@@ -458,7 +458,10 @@ const api = {
       }
 
       const tabId = newTab.getId()
+
+      // update our webContents Map with the openerTabId
       webContentsCache.updateWebContents(tabId, newTab, openerTabId)
+
       let newTabValue = getTabValue(newTab.getId())
 
       let windowId
@@ -525,6 +528,10 @@ const api = {
         return
       }
       const tabId = tab.getId()
+
+      // This is the first event for WebContents so cache the item in the Map
+      // This is not ideal since we do not know the old tabId here, we cannot
+      webContentsCache.updateWebContents(tabId, tab, null)
 
       // command-line flag --debug-tab-events
       if (shouldDebugTabEvents) {
@@ -847,6 +854,14 @@ const api = {
     }
   },
 
+  tabIdChanged: (oldTabId, newTabId) => {
+    if (shouldDebugTabEvents) {
+      console.log(`Tab [${oldTabId}] changed to tabId ${newTabId}. Updating state references...`)
+    }
+    webContentsCache.tabIdChanged(oldTabId, newTabId)
+    activeTabHistory.tabIdChanged(oldTabId, newTabId)
+  },
+
   pin: (state, tabId, pinned) => {
     const tab = webContentsCache.getWebContents(tabId)
     if (tab && !tab.isDestroyed()) {
@@ -998,6 +1013,9 @@ const api = {
   },
 
   moveTo: (state, tabId, frameOpts, browserOpts, toWindowId) => {
+    if (shouldDebugTabEvents) {
+      console.log(`tabs.moveTo: tab:${tabId} to window:${toWindowId}`)
+    }
     frameOpts = makeImmutable(frameOpts)
     browserOpts = makeImmutable(browserOpts)
     const tab = webContentsCache.getWebContents(tabId)
@@ -1039,6 +1057,9 @@ const api = {
           }
         }
         if (toWindowId == null || toWindowId === -1) {
+          if (shouldDebugTabEvents) {
+            console.log('creating new window for moved tab')
+          }
           // move tab to a new window
           frameOpts = frameOpts.set('index', 0)
           appActions.newWindow(frameOpts, browserOpts)
@@ -1049,6 +1070,9 @@ const api = {
         }
         // handle tab has made it to the new window
         tab.once('did-attach', () => {
+          if (shouldDebugTabEvents) {
+            console.log(`Tab attached to a new window, so setting the desired index`)
+          }
           // put the tab in the desired index position
           const index = frameOpts.get('index')
           if (index !== undefined) {
