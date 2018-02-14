@@ -302,12 +302,14 @@ const appActions = {
     })
   },
 
-  tabReplaced: function (oldTabId, newTabId) {
-    console.log('tab replaced', {oldTabId, newTabId})
+  tabReplaced: function (oldTabId, newTabValue, windowId) {
     dispatch({
       actionType: appConstants.APP_TAB_REPLACED,
       oldTabId,
-      newTabId
+      newTabValue,
+      queryInfo: {
+        windowId
+      }
     })
   },
 

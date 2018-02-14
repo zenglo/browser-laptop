@@ -434,6 +434,9 @@ const api = {
     })
 
     process.on('add-new-contents', (e, source, newTab, disposition, size, userGesture) => {
+      if (shouldDebugTabEvents) {
+        console.log('process:add-new-contents', newTab)
+      }
       if (userGesture === false) {
         e.preventDefault()
         return
@@ -614,6 +617,19 @@ const api = {
             }
           }
         }
+      })
+
+      tab.on('tab-replaced-at', (e, windowId, tabIndex, newContents) => {
+        console.log(`tab ${tab.getId()} changed to`, {newTabId: newContents.getId(), tabIndex})
+        const newTabId = newContents.getId()
+        if (shouldDebugTabEvents) {
+          console.log(`Tab [${tabId}] changed to tabId ${newTabId}. Updating state references...`)
+        }
+        // update state
+        appActions.tabReplaced(tabId, getTabValue(newTabId), getTabValue(tabId).get('windowId'))
+        // update in-memory caches
+        webContentsCache.tabIdChanged(tabId, newTabId)
+        activeTabHistory.tabIdChanged(tabId, newTabId)
       })
 
       tab.on('tab-strip-empty', () => {
@@ -852,14 +868,6 @@ const api = {
       tab.clone(options.toJS(), (newTab) => {
       })
     }
-  },
-
-  tabIdChanged: (oldTabId, newTabId) => {
-    if (shouldDebugTabEvents) {
-      console.log(`Tab [${oldTabId}] changed to tabId ${newTabId}. Updating state references...`)
-    }
-    webContentsCache.tabIdChanged(oldTabId, newTabId)
-    activeTabHistory.tabIdChanged(oldTabId, newTabId)
   },
 
   pin: (state, tabId, pinned) => {

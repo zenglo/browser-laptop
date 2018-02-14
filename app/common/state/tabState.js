@@ -404,6 +404,31 @@ const tabState = {
     return state.set('tabs', tabs.delete(index).insert(index, tabValue))
   },
 
+  replaceTabValue: (state, tabId, newTabValue) => {
+    state = validateState(state)
+    newTabValue = makeImmutable(newTabValue)
+    // update tab
+    const index = getTabInternalIndexByTabId(state, tabId)
+    const oldTabValue = state.getIn(['tabs', index])
+    if (index == null || index === -1) {
+      console.error(`tabState: cannot replace tab ${tabId} as tab's index did not exist in state`, { index })
+      return state
+    }
+    let mergedTabValue = oldTabValue.mergeDeep(newTabValue)
+    if (mergedTabValue.has('frame')) {
+      mergedTabValue = mergedTabValue.mergeIn(['frame'], {
+        tabId: newTabValue.get('tabId'),
+        guestInstanceId: newTabValue.get('guestInstanceId')
+      })
+    }
+    mergedTabValue = mergedTabValue.set('windowId', oldTabValue.get('windowId'))
+    state = state.set('tabs', state.get('tabs').delete(index).insert(index, mergedTabValue))
+    // update tabId at tabsInternal index
+    state = deleteTabsInternalIndex(state, oldTabValue)
+    state = updateTabsInternalIndex(state, 0)
+    return state
+  },
+
   removeTabField: (state, field) => {
     state = makeImmutable(state)
 
@@ -421,12 +446,14 @@ const tabState = {
     state = validateState(state)
     action = validateAction(action)
     const tabId = action.getIn(['frame', 'tabId'])
+    console.log(`frame changed ${tabId}`)
     if (!tabId) {
       return state
     }
 
     let tabValue = tabState.getByTabId(state, tabId)
     if (!tabValue) {
+      console.log(`Frame changed - tab ${tabId} not found.`)
       return state
     }
 

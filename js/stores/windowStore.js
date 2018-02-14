@@ -177,8 +177,11 @@ const newFrame = (state, frameOpts) => {
 const frameTabIdChanged = (state, action) => {
   action = makeImmutable(action)
   const oldTabId = action.get('oldTabId')
-  const newTabId = action.get('newTabId')
+  const newTabValue = action.get('newTabValue')
+  const newTabId = newTabValue.get('tabId')
+  console.log('frame id changed', oldTabId, newTabId)
   if (newTabId == null || oldTabId === newTabId) {
+    console.error('Invalid action arguments for frameTabIdChanged')
     return state
   }
 
