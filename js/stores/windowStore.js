@@ -194,11 +194,10 @@ const frameGuestInstanceIdChanged = (state, action) => {
   action = makeImmutable(action)
   const oldGuestInstanceId = action.get('oldGuestInstanceId')
   const newGuestInstanceId = action.get('newGuestInstanceId')
-
   if (oldGuestInstanceId === newGuestInstanceId) {
     return state
   }
-
+  console.log('Frame guest instance id changed', { oldGuestInstanceId, newGuestInstanceId })
   return state.mergeIn(['frames', frameStateUtil.getFrameIndex(state, action.getIn(['frameProps', 'key']))], {
     guestInstanceId: newGuestInstanceId
   })
@@ -366,7 +365,7 @@ const doAction = (action) => {
         windowState = windowState.setIn(['ui', 'tabs', 'tabPageIndex'], action.index)
         windowState = windowState.deleteIn(['ui', 'tabs', 'previewTabPageIndex'])
       } else {
-        windowState = frameStateUtil.updateTabPageIndex(windowState, action.frameProps.get('tabId'))
+        windowState = frameStateUtil.updateTabPageIndex(windowState, action.tabId)
       }
       break
     case windowConstants.WINDOW_SET_TAB_HOVER_STATE:
