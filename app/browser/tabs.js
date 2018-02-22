@@ -1065,6 +1065,10 @@ const api = {
 
       // handle tab is about to detach from current window
       tab.once('did-detach', () => {
+        if (shouldDebugTabEvents) {
+          console.log('detached tab guestinstance id', tab.guestInstanceId)
+        }
+        frameOpts = frameOpts.set('guestInstanceId', tab.guestInstanceId)
         // handle tab has made it to the new window
         tab.once('did-attach', () => {
           if (shouldDebugTabEvents) {

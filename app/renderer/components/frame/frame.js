@@ -929,6 +929,9 @@ class Frame extends React.Component {
     const transitionClassName = this.getTransitionStateClassName(this.props.transitionState)
     return <div
       data-partition={this.props.partition}
+      data-tab-id={this.props.tabId}
+      data-frame-key={this.props.frameKey}
+      data-guest-id={this.props.guestInstanceId}
       data-test-id='frameWrapper'
       data-test2-id={this.props.isActive ? 'activeFrame' : null}
       data-test3-id={this.props.isPreview ? 'previewFrame' : null}
