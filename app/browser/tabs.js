@@ -1060,8 +1060,19 @@ const api = {
         return
       }
 
-      // detach from current window
-      tab.detach(() => {
+      // handle tab is about to detach from current window
+      tab.once('did-detach', () => {
+        // handle tab has made it to the new window
+        tab.once('did-attach', () => {
+          if (shouldDebugTabEvents) {
+            console.log(`Tab attached to a new window, so setting the desired index`)
+          }
+          // put the tab in the desired index position
+          const index = frameOpts.get('index')
+          if (index !== undefined) {
+            api.setTabIndex(tabId, frameOpts.get('index'))
+          }
+        })
         // handle tab has detached from window
         // handle tab was the active tab of the window
         if (tabValue.get('active')) {
@@ -1071,6 +1082,8 @@ const api = {
             api.setActive(nextActiveTabIdForOldWindow)
           }
         }
+        // tell another window to add the tab, this will cause the tab to render a webview and
+        // then attach to that window
         if (toWindowId == null || toWindowId === -1) {
           if (shouldDebugTabEvents) {
             console.log('creating new window for moved tab')
@@ -1083,18 +1096,9 @@ const api = {
           // specified window
           appActions.newWebContentsAdded(toWindowId, frameOpts, tabValue)
         }
-        // handle tab has made it to the new window
-        tab.once('did-attach', () => {
-          if (shouldDebugTabEvents) {
-            console.log(`Tab attached to a new window, so setting the desired index`)
-          }
-          // put the tab in the desired index position
-          const index = frameOpts.get('index')
-          if (index !== undefined) {
-            api.setTabIndex(tabId, frameOpts.get('index'))
-          }
-        })
       })
+      // perform detach from current window
+      tab.detach()
     }
   },
 
