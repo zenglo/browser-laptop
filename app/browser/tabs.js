@@ -620,10 +620,17 @@ const api = {
       })
 
       tab.on('tab-replaced-at', (e, windowId, tabIndex, newContents) => {
-        console.log(`tab ${tab.getId()} changed to`, {newTabId: newContents.getId(), tabIndex})
+        const isPlaceholder = newContents.isPlaceholder()
         const newTabId = newContents.getId()
+        if (isPlaceholder) {
+          if (shouldDebugTabEvents) {
+            console.log(`Tab [${tabId}] got a new placeholder (${newTabId}), not updating state.`)
+          }
+          return
+        }
+        // new contents is permanent replacement, e.g. tab has been discarded
         if (shouldDebugTabEvents) {
-          console.log(`Tab [${tabId}] changed to tabId ${newTabId}. Updating state references...`)
+          console.log(`Tab [${tabId}] permanently changed to tabId ${newTabId}. Updating state references...`)
         }
         // update state
         appActions.tabReplaced(tabId, getTabValue(newTabId), getTabValue(tabId).get('windowId'))
