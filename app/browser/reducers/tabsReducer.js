@@ -151,7 +151,9 @@ const tabsReducer = (state, action, immutableAction) => {
       // tabs.debugTabs(state)
       break
     case appConstants.APP_TAB_REPLACED:
-      state = tabState.replaceTabValue(state, action.get('oldTabId'), action.get('newTabValue'))
+      if (action.get('isPermanent')) {
+        state = tabState.replaceTabValue(state, action.get('oldTabId'), action.get('newTabValue'))
+      }
       break
     case appConstants.APP_TAB_CLOSE_REQUESTED:
       {

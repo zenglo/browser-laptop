@@ -620,23 +620,26 @@ const api = {
       })
 
       tab.on('tab-replaced-at', (e, windowId, tabIndex, newContents) => {
+        // if not a placeholder, new contents is permanent replacement, e.g. tab has been discarded
+        // if is a placeholder, new contents is temporary, and should not be used for tab ID
         const isPlaceholder = newContents.isPlaceholder()
         const newTabId = newContents.getId()
-        if (isPlaceholder) {
-          if (shouldDebugTabEvents) {
-            console.log(`Tab [${tabId}] got a new placeholder (${newTabId}), not updating state.`)
-          }
-          return
-        }
-        // new contents is permanent replacement, e.g. tab has been discarded
+
         if (shouldDebugTabEvents) {
-          console.log(`Tab [${tabId}] permanently changed to tabId ${newTabId}. Updating state references...`)
+          if (isPlaceholder) {
+            console.log(`Tab [${tabId}] got a new placeholder (${newTabId}), not updating state.`)
+          } else {
+            console.log(`Tab [${tabId}] permanently changed to tabId ${newTabId}. Updating state references...`)
+          }
         }
+
         // update state
-        appActions.tabReplaced(tabId, getTabValue(newTabId), getTabValue(tabId).get('windowId'))
-        // update in-memory caches
-        webContentsCache.tabIdChanged(tabId, newTabId)
-        activeTabHistory.tabIdChanged(tabId, newTabId)
+        appActions.tabReplaced(tabId, getTabValue(newTabId), getTabValue(tabId).get('windowId'), !isPlaceholder)
+        if (!isPlaceholder) {
+          // update in-memory caches
+          webContentsCache.tabIdChanged(tabId, newTabId)
+          activeTabHistory.tabIdChanged(tabId, newTabId)
+        }
       })
 
       tab.on('tab-strip-empty', () => {

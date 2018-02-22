@@ -302,11 +302,12 @@ const appActions = {
     })
   },
 
-  tabReplaced: function (oldTabId, newTabValue, windowId) {
+  tabReplaced: function (oldTabId, newTabValue, windowId, isPermanent) {
     dispatch({
       actionType: appConstants.APP_TAB_REPLACED,
       oldTabId,
       newTabValue,
+      isPermanent,
       queryInfo: {
         windowId
       }
