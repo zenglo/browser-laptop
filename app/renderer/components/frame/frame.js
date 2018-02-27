@@ -474,7 +474,7 @@ class Frame extends React.Component {
     }, { passive: true })
 
     this.tabEventEmitter.addEventListener('will-destroy', (e) => {
-      this.onCloseFrame()
+//      this.onCloseFrame()
     }, { passive: true })
     this.tabEventEmitter.addEventListener('page-favicon-updated', (e) => {
       console.log('page-fav-upd')
