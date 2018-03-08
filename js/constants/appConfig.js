@@ -223,6 +223,7 @@ module.exports = {
     'extensions.pocket.enabled': false,
     'extensions.vimium.enabled': false,
     'extensions.honey.enabled': false,
+    'extensions.redditEnhancementSuite.enabled': false,
     'extensions.pinterest.enabled': false,
     'extensions.metamask.enabled': false,
     'extensions.metamask.promptDismissed': false,

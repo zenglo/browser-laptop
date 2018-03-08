@@ -94,6 +94,7 @@ const settings = {
   POCKET_ENABLED: 'extensions.pocket.enabled',
   VIMIUM_ENABLED: 'extensions.vimium.enabled',
   HONEY_ENABLED: 'extensions.honey.enabled',
+  RES_ENABLED: 'extensions.redditEnhancementSuite.enabled',
   PINTEREST_ENABLED: 'extensions.pinterest.enabled',
   METAMASK_ENABLED: 'extensions.metamask.enabled',
   METAMASK_PROMPT_DISMISSED: 'extensions.metamask.promptDismissed',

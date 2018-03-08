@@ -592,6 +592,12 @@ module.exports.init = () => {
       disableExtension(config.honeyExtensionId)
     }
 
+    if (getSetting(settings.RES_ENABLED)) {
+      registerComponent(config.RESExtensionId, config.RESExtensionPublicKey)
+    } else {
+      disableExtension(config.RESExtensionId)
+    }
+
     // if (getSetting(settings.PINTEREST_ENABLED)) {
     //   registerComponent(config.pinterestExtensionId, config.pinterestExtensionPublicKey)
     // } else {

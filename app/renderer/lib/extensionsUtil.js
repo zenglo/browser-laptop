@@ -20,6 +20,7 @@ const webtorrent = config.torrentExtensionId
 const vimium = config.vimiumExtensionId
 const honey = config.honeyExtensionId
 const pinterest = config.pinterestExtensionId
+const redditEnhancementSuite = config.RESExtensionId
 const metamask = config.metamaskExtensionId
 
 /**
@@ -52,21 +53,30 @@ const dummyData = [
   //   name: 'enpass',
   //   description: 'enpassDesc',
   //   icon: 'img/extensions/enpass-128.png'
-  }, {
+  },
+  {
     id: lastpass,
     name: 'lastpass',
     description: 'lastpassDesc',
     icon: 'img/extensions/lastpass-128.png'
-  }, {
+  },
+  {
     id: onepassword,
     name: '1password',
     description: '1passwordDesc',
     icon: 'img/extensions/1password-128.png'
-  }, {
+  },
+  {
     id: pocket,
     name: 'saveToPocket',
     description: 'saveToPocketDesc',
     icon: 'img/extensions/pocket-128.png'
+  },
+  {
+    id: redditEnhancementSuite,
+    name: 'redditEnhancementSuite',
+    description: 'redditEnhancementSuiteDesc',
+    icon: 'img/extensions/res-128.png'
   },
   {
     id: honey,
@@ -177,6 +187,8 @@ module.exports.getExtensionKey = (extensionId) => {
     case metamask:
       extensionSetting = settings.METAMASK_ENABLED
       break
+    case redditEnhancementSuite:
+      extensionSetting = settings.RES_ENABLED
     default:
       break
   }

@@ -82,6 +82,10 @@ module.exports = {
   // Download: https://clients2.google.com/service/update2/crx?response=redirect&prodversion=52.0.2743.116&x=id%3Dbmnlcjabgnpnenekpadlanbbkooimhnj%26uc // NOLINT
   honeyExtensionId: 'bmnlcjabgnpnenekpadlanbbkooimhnj',
   honeyExtensionPublicKey: 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC79mayLyuCYY/dyT7Ycr1sVBp9yHrY4mnogVEgu+sDT6+/A121Na+aTw6mFLD6LHgbgHt4fnQ2V/QwcfBSXRTSkGpgNsZAjnYs4/XzZQYKGltWT93EP9zXN1kGbtzfkPGzTakquCfOjbKtbAQKWh8ppzqLhWcRUn9g/PhU99F29QIDAQAB',
+  // Redit Enhancement Suite
+  // Download: https://clients2.google.com/service/update2/crx?response=redirect&prodversion=52.0.2743.116&x=id%3Dkbmfpngjjgdllneeigpgjifpgocmfgmb%26uc // NOLINT
+  RESExtensionId: 'kbmfpngjjgdllneeigpgjifpgocmfgmb',
+  RESExtensionPublicKey:'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC0tGrnRoI1FWgRxN/bBk0ZffBG5GUb4yTO+Z6dgHlI80kiskv0w1JFjTjV6v/MGh+6ZZueaD/+gq7CS8wIhDCRks7/9DZtRgRnj5yNF+aK+VDLXiRYZIRWxikXWgiGWYstWbhWpvdcBeZB3IkPMRY00+VMwim30tTgnRiBvSelhQIDAQAB',
   pinterestExtensionId: 'gpdjojdkbbmdfjfahjcgigfpmkopogic',
   pinterestExtensionPublicKey: 'MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDB95q2hyt49ZDuVnYI91XaZhqQkbXu0X3fzoNxPxhFbfqGKwtts90LJ7lD5DCIfnBg8WGFhp3eW4GxOglAKrnksmJoyAD5PnSAufx8fD3trZvo/ZAqFx1x5Xm3Rm34EgvVXdralgHSYiqcEU/FX3kYnLLhr2TS4lcrsn1KZd/lcQIDAQAB',
   metamaskExtensionId: 'nkbihfbeogaeaoehlefnkodbefgpgknn',
