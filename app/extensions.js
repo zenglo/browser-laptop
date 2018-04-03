@@ -607,6 +607,12 @@ module.exports.init = () => {
       disableExtension(config.metamaskExtensionId)
     }
 
+    if (getSetting(settings.BETTERTTV_ENABLED)) {
+      registerComponent(config.betterttvExtensionId, config.betterttvPublicKey)
+    } else {
+      disableExtension(config.betterttvExtensionId)
+    }
+
     if (appStore.getState().getIn(['widevine', 'enabled'])) {
       registerComponent(config.widevineComponentId, config.widevineComponentPublicKey)
     }
