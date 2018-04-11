@@ -115,7 +115,7 @@ const newFrame = (state, frameOpts) => {
     }
   }
   frameOpts.partitionNumber = frameOpts.partitionNumber || 0
-
+  const isPinned = frameOpts.isPinned
   const active = frameOpts.active
   delete frameOpts.active
   let openInForeground = active
@@ -151,7 +151,7 @@ const newFrame = (state, frameOpts) => {
       nextKey, frameOpts.partitionNumber, openInForeground, insertionIndex))
   state = frameStateUtil.updateFramesInternalIndex(state, insertionIndex)
 
-  if (openInForeground) {
+  if (openInForeground && !isPinned) {
     const tabId = frameOpts.tabId
     const frame = frameStateUtil.getFrameByTabId(state, tabId)
     state = frameStateUtil.updateTabPageIndex(state, tabId)
