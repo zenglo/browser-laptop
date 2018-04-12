@@ -40,6 +40,7 @@ const ledgerState = require('../common/state/ledgerState')
 const {getWindow} = require('./windows')
 const activeTabHistory = require('./activeTabHistory')
 const path = require('path')
+const {getTorSocksProxy} = require('../channel')
 
 let adBlockRegions
 let currentPartitionNumber = 0
@@ -1019,9 +1020,10 @@ const api = {
           createProperties.parent_partition = ''
         }
         if (createProperties.isTor) {
+          // TODO(riastradh): Duplicate logic in app/filtering.js.
           createProperties.isolated_storage = true
           createProperties.parent_partition = ''
-          createProperties.tor_proxy = 'socks5://127.0.0.1:9050'
+          createProperties.tor_proxy = getTorSocksProxy()
           if (process.platform === 'win32') {
             createProperties.tor_path = '"' + path.join(getExtensionsPath('bin'), 'tor.exe') + '"'
           } else {

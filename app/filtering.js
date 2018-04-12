@@ -35,6 +35,7 @@ const extensionState = require('./common/state/extensionState')
 const ledgerUtil = require('./common/lib/ledgerUtil')
 const {cookieExceptions, refererExceptions} = require('../js/data/siteHacks')
 const {getBraverySettingsCache, updateBraverySettingsCache} = require('./common/cache/braverySettingsCache')
+const {getTorSocksProxy} = require('./channel')
 
 let appStore = null
 
@@ -700,9 +701,10 @@ const initPartition = (partition) => {
     options.parent_partition = ''
   }
   if (isTorPartition) {
+    // TODO(riastradh): Duplicate logic in app/browser/tabs.js.
     options.isolated_storage = true
     options.parent_partition = ''
-    options.tor_proxy = 'socks5://127.0.0.1:9050'
+    options.tor_proxy = getTorSocksProxy()
     if (process.platform === 'win32') {
       options.tor_path = '"' + path.join(getExtensionsPath('bin'), 'tor.exe') + '"'
     } else {
