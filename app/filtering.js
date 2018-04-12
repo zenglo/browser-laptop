@@ -706,7 +706,7 @@ const initPartition = (partition) => {
     options.parent_partition = ''
     options.tor_proxy = getTorSocksProxy()
     if (process.platform === 'win32') {
-      options.tor_path = '"' + path.join(getExtensionsPath('bin'), 'tor.exe') + '"'
+      options.tor_path = path.join(getExtensionsPath('bin'), 'tor.exe')
     } else {
       options.tor_path = path.join(getExtensionsPath('bin'), 'tor')
     }

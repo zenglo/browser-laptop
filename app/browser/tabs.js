@@ -1025,7 +1025,7 @@ const api = {
           createProperties.parent_partition = ''
           createProperties.tor_proxy = getTorSocksProxy()
           if (process.platform === 'win32') {
-            createProperties.tor_path = '"' + path.join(getExtensionsPath('bin'), 'tor.exe') + '"'
+            createProperties.tor_path = path.join(getExtensionsPath('bin'), 'tor.exe')
           } else {
             createProperties.tor_path = path.join(getExtensionsPath('bin'), 'tor')
           }
