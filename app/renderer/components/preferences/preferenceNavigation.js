@@ -61,6 +61,13 @@ class PreferenceNavigation extends ImmutableComponent {
           onClick={this.props.changeTab.bind(null, preferenceTabs.PAYMENTS)}
           selected={this.props.preferenceTab === preferenceTabs.PAYMENTS}
         />
+        <PreferenceNavigationButton
+          icon={styles.advanced}
+          l10nId='braveAds'
+          testId='braveAdsButton'
+          onClick={this.props.changeTab.bind(null, preferenceTabs.ADS)}
+          selected={this.props.preferenceTab === preferenceTabs.ADS}
+        />
         <PreferenceNavigationButton icon={styles.extensions}
           l10nId='extensions'
           onClick={this.props.changeTab.bind(null, preferenceTabs.EXTENSIONS)}
@@ -80,11 +87,6 @@ class PreferenceNavigation extends ImmutableComponent {
           l10nId='advanced'
           onClick={this.props.changeTab.bind(null, preferenceTabs.ADVANCED)}
           selected={this.props.preferenceTab === preferenceTabs.ADVANCED}
-        />
-        <PreferenceNavigationButton icon={styles.advanced}
-          l10nId='demo'
-          onClick={this.props.changeTab.bind(null, preferenceTabs.DEMO)}
-          selected={this.props.preferenceTab === preferenceTabs.DEMO}
         />
       </div>
       <HelpfulHints hintNumber={this.props.hintNumber} refreshHint={this.props.refreshHint} />
