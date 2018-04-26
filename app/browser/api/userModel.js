@@ -37,7 +37,7 @@ const initialize = (state) => {
     sampleAdFeed = um.getSampleAdFeed()
   })
 
-  retrieveSSID(state)
+  retrieveSSID()
 
   return state
 }
