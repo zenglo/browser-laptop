@@ -9,6 +9,7 @@ const electron = require('electron')
 const session = electron.session
 const BrowserWindow = electron.BrowserWindow
 const webContents = electron.webContents
+const webContentsCache = require('./browser/webContentsCache')
 const appActions = require('../js/actions/appActions')
 const appConfig = require('../js/constants/appConfig')
 const hostContentSettings = require('./browser/contentSettings/hostContentSettings')
@@ -662,8 +663,10 @@ module.exports.setTorNewIdentity = (url, tabId) => {
     return
   }
   ses.setTorNewIdentity(url, () => {
-    const tab = webContents.fromTabID(tabId)
-    tab.reload()
+    const tab = webContentsCache.getWebContents(tabId)
+    if (tab && !tab.isDestroyed()) {
+      tab.reload(true)
+    }
   })
 }
 

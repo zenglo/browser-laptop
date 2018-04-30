@@ -300,7 +300,12 @@ class Frame extends React.Component {
         }
         break
       case 'clean-reload':
-        tabActions.reload(this.props.tabId, true)
+        if (frameStateUtil.isTor(this.frame)) {
+          // Set a new Tor circuit
+          appActions.setTorNewIdentity(this.props.tabId, this.props.location)
+        } else {
+          tabActions.reload(this.props.tabId, true)
+        }
         break
       case 'zoom-in':
         this.zoomIn()
