@@ -146,4 +146,67 @@ describe('filtering unit tests', function () {
       })
     })
   })
+
+  describe('shouldIgnoreUrl', function () {
+    it('handles details being undefined', function () {
+      const result = filtering.shouldIgnoreUrl()
+      assert.equal(result, true)
+    })
+
+    describe('when origin is `data:,`', function () {
+      it('returns false if set in `details.firstPartyUrl`', function () {
+        const result = filtering.shouldIgnoreUrl({firstPartyUrl: 'data:,'})
+        assert.equal(result, false)
+      })
+
+      it('returns false if set in `details.url`', function () {
+        const result = filtering.shouldIgnoreUrl({firstPartyUrl: 'http://example.com', url: 'data:,'})
+        assert.equal(result, false)
+      })
+    })
+
+    describe('when considering if `details.firstPartyUrl` contains a filterable protocol', function () {
+      it('returns true if protocol is not in filterable list', function () {
+        const result = filtering.shouldIgnoreUrl({firstPartyUrl: 'ftp://username:password@example.com:21'})
+        assert.equal(result, true)
+      })
+
+      it('does not throw exception if `details.url` if not a valid URL', function () {
+        const result = filtering.shouldIgnoreUrl({firstPartyUrl: 'abc'})
+        assert.equal(result, true)
+      })
+    })
+
+    describe('when considering if `details.url` contains a filterable protocol', function () {
+      it('returns false when protocol is in the filerable list', function () {
+        const result = filtering.shouldIgnoreUrl({url: 'http://example.com'})
+        assert.equal(result, false)
+      })
+
+      it('returns true if protocol is not in filterable list', function () {
+        const result = filtering.shouldIgnoreUrl({url: 'ftp://username:password@example.com:21'})
+        assert.equal(result, true)
+      })
+
+      describe('when `details.firstPartyUrl` is also set', function () {
+        it('returns true if protocol for `details.url` is not in filterable list ', function () {
+          const result = filtering.shouldIgnoreUrl({
+            firstPartyUrl: 'http://example.com',
+            url: 'ftp://username:password@example.com:21'
+          })
+          assert.equal(result, true)
+        })
+      })
+
+      it('does not throw exception if `details.url` if not a valid URL', function () {
+        const result = filtering.shouldIgnoreUrl({url: 'abc'})
+        assert.equal(result, true)
+      })
+    })
+
+    it('returns true by default', function () {
+      const result = filtering.shouldIgnoreUrl({})
+      assert.equal(result, true)
+    })
+  })
 })

@@ -109,7 +109,7 @@ function registerForBeforeRequest (session, partition) {
       }
     }
 
-    if (shouldIgnoreUrl(details)) {
+    if (module.exports.shouldIgnoreUrl(details)) {
       muonCb({})
       return
     }
@@ -230,7 +230,7 @@ function registerForBeforeRedirect (session, partition) {
   // Note that onBeforeRedirect listener doesn't take a callback
   session.webRequest.onBeforeRedirect(function (details) {
     // Using an electron binary which isn't from Brave
-    if (shouldIgnoreUrl(details)) {
+    if (module.exports.shouldIgnoreUrl(details)) {
       return
     }
     for (let i = 0; i < beforeRedirectFilteringFns.length; i++) {
@@ -302,7 +302,7 @@ function registerForBeforeSendHeaders (session, partition) {
 
   session.webRequest.onBeforeSendHeaders(function (details, muonCb) {
     // Using an electron binary which isn't from Brave
-    if (shouldIgnoreUrl(details)) {
+    if (module.exports.shouldIgnoreUrl(details)) {
       muonCb({})
       return
     }
@@ -354,7 +354,7 @@ function registerForHeadersReceived (session, partition) {
   const isPrivate = module.exports.isPrivate(partition)
   session.webRequest.onHeadersReceived(function (details, muonCb) {
     // Using an electron binary which isn't from Brave
-    if (shouldIgnoreUrl(details)) {
+    if (module.exports.shouldIgnoreUrl(details)) {
       muonCb({})
       return
     }
@@ -701,33 +701,39 @@ module.exports.initPartition = initPartition
 
 const filterableProtocols = ['http:', 'https:', 'ws:', 'wss:', 'magnet:', 'file:']
 
-function shouldIgnoreUrl (details) {
-  // data:, is a special origin from SecurityOrigin::urlWithUniqueSecurityOrigin
-  // and usually occurs when there is an https in an http main frame
-  if (details.firstPartyUrl === 'data:,' || details.url === 'data:,') {
-    return false
-  }
-
-  // Ensure host is well-formed (RFC 1035) and has a non-empty hostname
-  try {
-    // firstPartyUrl can be empty in some cases so fallback to the url
-    const firstPartyUrl = urlParse(details.firstPartyUrl || details.url)
-    if (!filterableProtocols.includes(firstPartyUrl.protocol)) {
-      return true
-    }
-  } catch (e) {
-    console.warn('Error parsing ' + details.firstPartyUrl)
-  }
-
-  try {
-    // TODO(bridiver) - handle RFS check and cancel http/https requests with 0 or > 255 length hostames
-    const parsedUrl = urlParse(details.url)
-    if (filterableProtocols.includes(parsedUrl.protocol)) {
+module.exports.shouldIgnoreUrl = function (details) {
+  if (details) {
+    // data:, is a special origin from SecurityOrigin::urlWithUniqueSecurityOrigin
+    // and usually occurs when there is an https in an http main frame
+    if (details.firstPartyUrl === 'data:,' || details.url === 'data:,') {
       return false
     }
-  } catch (e) {
-    console.warn('Error parsing ' + details.url)
+
+    // Ensure host is well-formed (RFC 1035) and has a non-empty hostname
+    if (details.firstPartyUrl) {
+      try {
+        const firstPartyUrl = urlParse(details.firstPartyUrl)
+        if (!filterableProtocols.includes(firstPartyUrl.protocol)) {
+          return true
+        }
+      } catch (e) {
+        console.warn('Error parsing ' + details.firstPartyUrl)
+      }
+    }
+
+    if (details.url) {
+      try {
+        // TODO(bridiver) - handle RFS check and cancel http/https requests with 0 or > 255 length hostames
+        const parsedUrl = urlParse(details.url)
+        if (filterableProtocols.includes(parsedUrl.protocol)) {
+          return false
+        }
+      } catch (e) {
+        console.warn('Error parsing ' + details.url)
+      }
+    }
   }
+
   return true
 }
 
