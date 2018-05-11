@@ -8,6 +8,7 @@ const mockery = require('mockery')
 // const sinon = require('sinon')
 const Immutable = require('immutable')
 const fakeElectron = require('../../lib/fakeElectron')
+const fakeFileSystem = require('../../lib/fakeFileSystem')
 // const windowConstants = require('../../../../js/constants/windowConstants')
 const appConstants = require('../../../../js/constants/appConstants')
 let doAction
@@ -63,6 +64,7 @@ describe('App store unit tests', function () {
       useCleanCache: true
     })
     mockery.registerMock('electron', fakeElectron)
+    mockery.registerMock('fs', fakeFileSystem)
     mockery.registerMock('../dispatcher/appDispatcher', fakeDispatcher)
     mockery.registerMock('../actions/appActions', appActions)
     mockery.registerMock('ad-block', require('../../lib/fakeAdBlock'))

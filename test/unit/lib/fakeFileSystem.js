@@ -22,6 +22,10 @@ const fakeFileSystem = {
   remove: (path, callback) => {
     console.log('calling mocked fs.remove')
     if (callback) callback()
+  },
+  readdirSync: (path, options) => {
+    console.log('calling mocked fs.readdirSync')
+    return []
   }
 }
 
