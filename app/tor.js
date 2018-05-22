@@ -74,6 +74,17 @@ function torControlCookiePath () {
 
 /**
  * State for a tor daemon subprocess.
+ *
+ * Emits the following events:
+ *
+ * launch(socksAddr)
+ * - when the tor process is known to have started.  socksAddr is in
+ *   the form `<IPv4>:<portno>', `[<IPv6>]:<portno>', or
+ *   `unix:<pathname>'.
+ *
+ * exit
+ * - when the tor process appears to have exited -- specifically, when
+ *   the control connection is closed.
  */
 class TorDaemon extends EventEmitter {
   /**
