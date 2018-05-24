@@ -10,12 +10,15 @@ let registeredPrivateSessions = {}
 const blockContentSetting = { setting: 'block', primaryPattern: '*' }
 
 // TODO(bridiver) move this to electron so we can call a simpler api
-const setUserPrefType = (ses, path, value) => {
+const setUserPrefType = (ses, path, value, partition) => {
   switch (typeof value) {
     case 'object':
       if (Array.isArray(value)) {
         ses.userPrefs.setListPref(path, value)
       } else {
+        if (path === 'content_settings') {
+          console.log('setting tor setting', value.torEnabled, partition)
+        }
         ses.userPrefs.setDictionaryPref(path, value)
       }
       break
@@ -62,11 +65,12 @@ module.exports.setUserPref = (path, value, incognito = false) => {
       newValue = Object.assign({}, value, {
         flashEnabled: [blockContentSetting],
         flashAllowed: [blockContentSetting],
+        torEnabled: [blockContentSetting], // currently only used for webrtc blocking
         plugins: [blockContentSetting]
       })
     }
     const ses = partitions[partition]
-    setUserPrefType(ses, path, newValue)
+    setUserPrefType(ses, path, newValue, partition)
     ses.webRequest.handleBehaviorChanged()
   }
 }
